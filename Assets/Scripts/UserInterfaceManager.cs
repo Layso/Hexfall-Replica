@@ -13,7 +13,7 @@ public class UserInterfaceManager : SuperClass {
 	public Toggle colorblindOnToggle;
 	public Toggle colorblindOffToggle;
 	public GameObject preparationScreen;
-
+	public bool tick;
 
 	private GridManager GridManagerObject;
 
@@ -29,7 +29,10 @@ public class UserInterfaceManager : SuperClass {
 	
 	// Update is called once per frame
 	void Update () {
-		
+		if (tick) {
+			StartGameButton();
+			tick = false;
+		}
 	}
 
 

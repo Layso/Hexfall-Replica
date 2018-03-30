@@ -3,19 +3,24 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Hexagon : SuperClass {
+	public int x;
+	public int y;
 
-
-	// Use this for initialization
-	void Start () {
-		
-	}
 	
-	// Update is called once per frame
-	void Update () {
-		
+
+	/* Using awake since Start() will be too late for instantiation */
+	void Awake () {
+		/* Assigning invalid indexes to indicate unused hexagon */
+		x = -1;
+		y = -1;
 	}
 
-	private void OnCollisionEnter2D(Collision2D collision) {
-		
-	}
+
+
+	/* Setters & Getters */
+	public void SetX(int value) { x = value; }
+	public void SetY(int value) { y = value; }
+
+	public int GetX() { return x; }
+	public int GetY() { return y; }
 }
