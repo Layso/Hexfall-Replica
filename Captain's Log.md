@@ -12,3 +12,5 @@ Author: Layso
 - Android SDK tools downgraded due to Unity Android build error
 - Git installed for version control
 - Project created on both Github and Unity
+- Temporary Main Menu created to switch to game screen
+- Game screen can initialize a grid with a changable size  
