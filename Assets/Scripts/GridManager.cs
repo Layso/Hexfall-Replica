@@ -206,7 +206,7 @@ public class GridManager : SuperClass {
 		int x = selected.GetX();
 		int y = selected.GetY();
 		bool onStepper = OnStepper(selected);
-
+		bool breakLoop = false;
 
 		/* Filling neighbours according to hexagons position (onstepper or onbase) */
 		neighbours.down = new Vector2(x, y-1);
@@ -217,15 +217,24 @@ public class GridManager : SuperClass {
 		neighbours.downRight = new Vector2(x+1, onStepper ? y : y-1);
 
 		/* Picking correct neighbour according to selection position */
-		switch (selectionStatus) {
-			case 0: first = neighbours.up; second = neighbours.upRight; break;
-			case 1: first = neighbours.upRight; second = neighbours.downRight; break;
-			case 2: first = neighbours.downRight; second = neighbours.down; break;
-			case 3: first = neighbours.down; second = neighbours.downLeft; break;
-			case 4: first = neighbours.downLeft; second = neighbours.upLeft; break;
-			case 5: first = neighbours.upLeft; second = neighbours.up; break;
-			default: first = Vector2.zero; second = Vector2.zero; break;
-		}
+		do {
+			switch (selectionStatus) {
+				case 0: first = neighbours.up; second = neighbours.upRight; break;
+				case 1: first = neighbours.upRight; second = neighbours.downRight; break;
+				case 2: first = neighbours.downRight; second = neighbours.down; break;
+				case 3: first = neighbours.down; second = neighbours.downLeft; break;
+				case 4: first = neighbours.downLeft; second = neighbours.upLeft; break;
+				case 5: first = neighbours.upLeft; second = neighbours.up; break;
+				default: first = Vector2.zero; second = Vector2.zero; break;
+			}
+
+			/* Loop until two neighbours with valid positions are found */
+			if (first.x < ZERO || first.x >= gridWidth || first.y < ZERO || first.y >= gridHeight || second.x < ZERO || second.x >= gridWidth || second.y < ZERO || second.y >= gridHeight) {
+				selectionStatus = (++selectionStatus) % SELECTION_STATUS_COUNT;
+			} else {
+				breakLoop = true;
+			}
+		} while (!breakLoop);
 	}
 
 
