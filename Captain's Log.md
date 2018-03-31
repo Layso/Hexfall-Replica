@@ -33,3 +33,4 @@ Author: Layso
 ---------------------
 - Some hexagon specific functions taken from GridManager class to Hexagon itself for logical reasons
 - First rotation attempt seems successfull. Still needs some adjustments for neighbour hexagons
+- Rotation fully implemented through out the day
