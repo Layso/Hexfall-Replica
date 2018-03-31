@@ -15,26 +15,18 @@ public class GridManager : SuperClass {
 	public Sprite hexagonSprite;
 
 	/* Member variables */
-	private bool validTouch;
-	private Vector2 touchStartPos;
-	private GameObject selectedHex;
-	private int selectionStatus;
 	private int gridWidth;
 	private int gridHeight;
+	private int selectionStatus;
+	private bool validTouch;
+	private Vector2 touchStartPos;
+	private Hexagon selectedHexagon;
 	private List<Hexagon> hexList;
-	private List<GameObject> outlineList;
+	private List<Hexagon> outlineList;
 
 
 
-	/* Struct to hold neighboor grid coordinates */
-	private struct NeighbourHexes {
-		public Vector2 up;
-		public Vector2 upLeft;
-		public Vector2 upRight;
-		public Vector2 down;
-		public Vector2 downLeft;
-		public Vector2 downRight;
-	}
+	
 	
 
 
@@ -44,12 +36,14 @@ public class GridManager : SuperClass {
 			instance = this;
 		else
 			Destroy(this);
+
+		hmm = 2;
 	}
 
 	/* Initializing variables */
 	private void Start() {
 		hexList = new List<Hexagon>();
-		outlineList = new List<GameObject>();
+		outlineList = new List<Hexagon>();
 	}
 
 	/* Checking input changes on all frames */
@@ -82,35 +76,19 @@ public class GridManager : SuperClass {
 			Collider2D collider = Physics2D.OverlapPoint(touchPos);
 
 
+			/* Set start poisiton at the beginning of touch[0] */
+			if (Input.GetTouch(ZERO).phase == TouchPhase.Began) {
+				validTouch = true;
+				touchStartPos = Input.GetTouch(ZERO).position;
+			}
+
 			/* If there is a collider and its tag match with any Hexagon continue operate */
-			if (collider != null && collider.transform.tag == TAG_HEXAGON) {
-				/* Set start poisiton at the beginning of touch[0] */
-				if (Input.GetTouch(ZERO).phase == TouchPhase.Began) {
-					validTouch = true;
-					touchStartPos = Input.GetTouch(ZERO).position;
-				}
-
-				/* Calculate distance to decide rotation of hexagons */
-				else if (Input.GetTouch(ZERO).phase == TouchPhase.Moved && validTouch) {
-					Vector2 touchCurrentPos = Input.GetTouch(ZERO).position;
-					float distance;
-
-					if (Mathf.Abs((distance = touchCurrentPos.x - touchStartPos.x)) > HEX_ROTATE_SLIDE_DISTANCE) {
-						print("dön bebeğim");
-						validTouch = false;
-					}
-
-					else if (Mathf.Abs((distance = touchCurrentPos.y - touchStartPos.y)) > HEX_ROTATE_SLIDE_DISTANCE) {
-						print("dön bebeğim");
-						validTouch = false;
-					}
-				}
-
-				/* Select new hexagon if touch ended */
-				else if (Input.GetTouch(ZERO).phase == TouchPhase.Ended && validTouch) {
+			else if (collider != null && collider.transform.tag == TAG_HEXAGON) {
+				/* Select hexagon if touch ended */
+				if (Input.GetTouch(ZERO).phase == TouchPhase.Ended && validTouch) {
 					/* If selection is different than current hex, reset status and variable */
-					if (selectedHex == null || !selectedHex.GetComponent<Collider2D>().Equals(collider)) {
-						selectedHex = collider.gameObject;
+					if (selectedHexagon == null || !selectedHexagon.GetComponent<Collider2D>().Equals(collider)) {
+						selectedHexagon = collider.gameObject.GetComponent<Hexagon>();
 						selectionStatus = 0;
 					}
 
@@ -123,18 +101,56 @@ public class GridManager : SuperClass {
 					validTouch = false;
 				}
 			}
+
+			/* Calculate distance to decide rotation of hexagons */
+			else if (Input.GetTouch(ZERO).phase == TouchPhase.Moved && validTouch) {
+				Vector2 touchCurrentPos = Input.GetTouch(ZERO).position;
+				float distanceX = touchCurrentPos.x - touchStartPos.x;
+				float distanceY = touchCurrentPos.y - touchStartPos.y;
+
+
+				if (Mathf.Abs(distanceX) > HEX_ROTATE_SLIDE_DISTANCE || Mathf.Abs(distanceY) > HEX_ROTATE_SLIDE_DISTANCE) {
+					Rotate();
+					validTouch = false;
+				}
+			}
 		}
 	}
 	
 	
 	
+	/* Function to rotate the hex group on touch position */
+	private void Rotate() {
+		/* Clear previous outlines */
+		if (outParent.transform.childCount > ZERO) {
+			foreach (Transform child in outParent.transform)
+				Destroy(child.gameObject);
+		}
+
+		foreach(Hexagon hex in hexList) {
+			hex.gameObject.GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeAll;
+		}
+
+		outlineList[0].SetLerpPosition(outlineList[1].transform.position);
+		outlineList[1].SetLerpPosition(outlineList[2].transform.position);
+		outlineList[2].SetLerpPosition(outlineList[0].transform.position);
+	}
+
+
+
+	/* Helper function to Rotate() for rotation animation */
+	private IEnumerator RotationCoroutine() {
+		for(int i=0; i<outParent.transform.childCount; ++i) {
+			print(outParent.transform.GetChild(i).gameObject.transform.position);
+		}
+		yield return new WaitForSeconds(0.01f);
+		
+	}
+
+
+
 	/* Function to select the hex group on touch position */
 	private void Select() {
-		
-		Hexagon hex = selectedHex.GetComponent<Hexagon>();
-		
-
-
 		/* Clear previous outlines */
 		if (outParent.transform.childCount > ZERO) {
 			foreach (Transform child in outParent.transform)
@@ -148,12 +164,12 @@ public class GridManager : SuperClass {
 		 * hexagons and making them bigger than actual hexagons. AKA fake shader programming 
 		 * Yes, I should learn shader programming... 
 		 */
-		foreach (GameObject go in outlineList) {
+		foreach (Hexagon outlinedHexagon in outlineList) {
+			GameObject go = outlinedHexagon.gameObject;
 			GameObject outline = new GameObject("Outline");
 			GameObject outlineInner = new GameObject("Inner Object");
 
 			outline.transform.parent = outParent.transform;
-			outlineInner.transform.parent = outParent.transform;
 
 			outline.AddComponent<SpriteRenderer>();
 			outline.GetComponent<SpriteRenderer>().sprite = hexagonSprite;
@@ -166,15 +182,15 @@ public class GridManager : SuperClass {
 			outlineInner.GetComponent<SpriteRenderer>().color = go.GetComponent<SpriteRenderer>().color;
 			outlineInner.transform.position = new Vector3(go.transform.position.x, go.transform.position.y, -1);
 			outlineInner.transform.localScale = go.transform.localScale;
+			outlineInner.transform.parent = outline.transform;
 		}
 	}
 
 
 
 	/* Helper function for Select() to find all 3 hexagons to be outlined */
-	private List<GameObject> FindHexagonGroup() {
-		List<GameObject> returnValue = new List<GameObject>();
-		Hexagon selectedHexagon = selectedHex.GetComponent<Hexagon>();
+	private List<Hexagon> FindHexagonGroup() {
+		List<Hexagon> returnValue = new List<Hexagon>();
 		Vector2 firstPos, secondPos;
 
 
@@ -182,14 +198,14 @@ public class GridManager : SuperClass {
 		FindOtherHexagons(out firstPos, out secondPos);
 
 		/* Adding selected hexagons to selected list */
-		returnValue.Add(selectedHex);
+		returnValue.Add(selectedHexagon);
 		foreach (Hexagon hex in hexList) {
 			if (firstPos.x == hex.GetX() && firstPos.y == hex.GetY()) {
-				returnValue.Add(hex.gameObject);
+				returnValue.Add(hex.GetComponent<Hexagon>());
 			}
 
 			else if(secondPos.x == hex.GetX() && secondPos.y == hex.GetY()) {
-				returnValue.Add(hex.gameObject);
+				returnValue.Add(hex.GetComponent<Hexagon>());
 			}
 		}
 
@@ -201,20 +217,9 @@ public class GridManager : SuperClass {
 
 	/* Helper function for FindHexagonGroup() to locate two other hexagons */
 	private void FindOtherHexagons(out Vector2 first, out Vector2 second) {
-		Hexagon selected = selectedHex.GetComponent<Hexagon>();
-		NeighbourHexes neighbours = new NeighbourHexes();
-		int x = selected.GetX();
-		int y = selected.GetY();
-		bool onStepper = OnStepper(selected);
+		Hexagon.NeighbourHexes neighbours = selectedHexagon.GetNeighbours();
 		bool breakLoop = false;
 
-		/* Filling neighbours according to hexagons position (onstepper or onbase) */
-		neighbours.down = new Vector2(x, y-1);
-		neighbours.up = new Vector2(x, y+1);
-		neighbours.upLeft = new Vector2(x-1, onStepper ? y+1 : y);
-		neighbours.upRight = new Vector2(x+1, onStepper ? y+1 : y);
-		neighbours.downLeft = new Vector2(x-1, onStepper ? y : y-1);
-		neighbours.downRight = new Vector2(x+1, onStepper ? y : y-1);
 
 		/* Picking correct neighbour according to selection position */
 		do {
@@ -254,18 +259,6 @@ public class GridManager : SuperClass {
 				yield return new WaitForSeconds(0.02f);
 			}
 		}
-	}
-
-
-
-	/* Helper function to find out if Hexagon standing on stepper or on base.
-	 * Doesn't required new function to operate but needs space to be explained.
-	 * First part checks if middle column (index of mid-col (int)(GridWidth/2))
-	 * is on an even or odd numbered index. This specifies whether grid starts with
-	 * a stepper or without. Second part checks if hexagon is on an even or odd numbered
-	 * index. If their indexes are both even or both even, then hexagon is on a stepper */
-	private bool OnStepper(Hexagon hex) {
-		return ((GetGridWidth()/HALF)%2 == hex.GetX()%2);
 	}
 
 
