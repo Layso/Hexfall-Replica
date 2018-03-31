@@ -19,7 +19,6 @@ public class GridManager : SuperClass {
 	private int gridWidth;
 	private int gridHeight;
 	private int selectionStatus;
-	private bool validTouch;
 	private Vector2 touchStartPos;
 	private Hexagon selectedHexagon;
 	private List<Hexagon> hexList;
@@ -48,11 +47,6 @@ public class GridManager : SuperClass {
 		outlineList = new List<Hexagon>();
 	}
 
-	/* Checking input changes on all frames */
-	private void Update() {
-		InputManager();
-	}
-
 
 
 	/* Wrapper function for coroutine. Width and height should be set before this call */
@@ -66,80 +60,20 @@ public class GridManager : SuperClass {
 			StartCoroutine(InitialHexagonProducer(startX, startPos));
 		}
 	}
-
-
-
-	/* Function to take and analyze input */
-	private void InputManager() {
-		if (Input.touchCount > ZERO && InputAvailability()) {
-			/* Taking collider of touched object to a variable */
-			Vector3 wp = Camera.main.ScreenToWorldPoint(Input.GetTouch(ZERO).position);
-			Vector2 touchPos = new Vector2(wp.x, wp.y);
-			Collider2D collider = Physics2D.OverlapPoint(touchPos);
-
-
-			/* Set start poisiton at the beginning of touch[0] */
-			if (Input.GetTouch(ZERO).phase == TouchPhase.Began) {
-				validTouch = true;
-				touchStartPos = Input.GetTouch(ZERO).position;
-			}
-
-			/* If there is a collider and its tag match with any Hexagon continue operate */
-			else if (collider != null && collider.transform.tag == TAG_HEXAGON) {
-				/* Select hexagon if touch ended */
-				if (Input.GetTouch(ZERO).phase == TouchPhase.Ended && validTouch) {
-					/* If selection is different than current hex, reset status and variable */
-					if (selectedHexagon == null || !selectedHexagon.GetComponent<Collider2D>().Equals(collider)) {
-						selectedHexagon = collider.gameObject.GetComponent<Hexagon>();
-						selectionStatus = 0;
-					}
-
-					/* Else increase selection status without exceeding total number */
-					else {
-						selectionStatus = (++selectionStatus) % SELECTION_STATUS_COUNT;
-					}
-
-					Select();
-					validTouch = false;
-				}
-			}
-
-			/* Calculate distance to decide rotation of hexagons */
-			else if (Input.GetTouch(ZERO).phase == TouchPhase.Moved && validTouch) {
-				Vector2 touchCurrentPos = Input.GetTouch(ZERO).position;
-				float distanceX = touchCurrentPos.x - touchStartPos.x;
-				float distanceY = touchCurrentPos.y - touchStartPos.y;
-
-
-				if ((Mathf.Abs(distanceX) > HEX_ROTATE_SLIDE_DISTANCE || Mathf.Abs(distanceY) > HEX_ROTATE_SLIDE_DISTANCE) && selectedHexagon != null) {
-					Vector3 screenPosition = Camera.main.WorldToScreenPoint(selectedHexagon.transform.position);
-
-					/* Simplifying long boolean expression thanks to ternary condition
-					 * triggerOnX specifies if rotate action triggered from a horizontal or vertical swipe 
-					 * swipeRightUp specifies if swipe direction was right or up
-					 * touchThanHex specifies if touch position value is bigger than hexagon position on triggered axis
-					 * If X axis triggered rotation with same direction swipe then rotate clockwise else rotate counter clockwise
-					 * If Y axis triggered rotation with opposite direction swipe then rotate clockwise else rotate counter clocwise
-					 */
-					bool triggerOnX = Mathf.Abs(distanceX) > Mathf.Abs(distanceY);
-					bool swipeRightUp = triggerOnX ? distanceX > ZERO : distanceY > ZERO;
-					bool touchThanHex = triggerOnX ? touchCurrentPos.y > screenPosition.y : touchCurrentPos.x > screenPosition.x;
-					bool clockWise = triggerOnX ? swipeRightUp == touchThanHex : swipeRightUp != touchThanHex;
-
-					validTouch = false;
-					hexagonRotationStatus = true;
-					Rotate(clockWise);
-				}
-			}
-		}
-	}
 	
 	
 	
 	/* Function to rotate the hex group on touch position */
-	private void Rotate(bool clockWise) {
+	public void Rotate(bool clockWise) {
 		int x1, x2, x3, y1, y2, y3;
 		Vector2 pos1, pos2, pos3;
+
+
+	/*
+	 * validTouch = false;
+			hexagonRotationStatus = true;
+			*/
+
 
 		/* Clear previous outlines */
 		DestructOutline();
@@ -202,8 +136,19 @@ public class GridManager : SuperClass {
 
 
 
-	/* Function to select the hex group on touch position */
-	private void Select() {
+	/* Function to select the hex group on touch position, returns the selected hexagon */
+	public Hexagon Select(Collider2D collider) {
+		/* If selection is different than current hex, reset status and variable */
+		if (selectedHexagon == null || !selectedHexagon.GetComponent<Collider2D>().Equals(collider)) {
+			selectedHexagon = collider.gameObject.GetComponent<Hexagon>();
+			selectionStatus = 0;
+		}
+
+		/* Else increase selection status without exceeding total number */
+		else {
+			selectionStatus = (++selectionStatus) % SELECTION_STATUS_COUNT;
+		}
+
 		/* Clear previous outlines */
 		DestructOutline();
 
@@ -212,6 +157,8 @@ public class GridManager : SuperClass {
 
 		/* Build outline around hex group */
 		ConstructOutline();
+
+		return selectedHexagon;
 	}
 
 
@@ -340,8 +287,8 @@ public class GridManager : SuperClass {
 
 
 
-	/*  */
-	private bool InputAvailability() {
+	/* Checks coroutine status variables to see if game is ready to take input */
+	public bool InputAvailabile() {
 		return !gameInitializiationStatus && !hexagonRotationStatus;
 	}
 
