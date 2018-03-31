@@ -24,10 +24,9 @@ public class GridManager : SuperClass {
 	private List<Hexagon> hexList;
 	private List<Hexagon> outlineList;
 
+	/* Coroutine status variables */
 	private bool gameInitializiationStatus;
 	private bool hexagonRotationStatus;
-
-
 
 
 
@@ -39,7 +38,6 @@ public class GridManager : SuperClass {
 			Destroy(this);
 	}
 
-	/* Initializing variables */
 	private void Start() {
 		gameInitializiationStatus = false;
 		hexagonRotationStatus = false;
@@ -49,7 +47,7 @@ public class GridManager : SuperClass {
 
 
 
-	/* Wrapper function for coroutine. Width and height should be set before this call */
+	/* Wrapper function for grid initializer coroutine. Width and height should be set before this call */
 	public void InitializeGrid() {
 		float startX = gridWidth/HALF * -HEX_DISTANCE_HORIZONTAL;
 		Vector3 startPos = new Vector3(0, 10, 0);
@@ -59,79 +57,6 @@ public class GridManager : SuperClass {
 		if (hexPrefab != null) {
 			StartCoroutine(InitialHexagonProducer(startX, startPos));
 		}
-	}
-	
-	
-	
-	/* Function to rotate the hex group on touch position */
-	public void Rotate(bool clockWise) {
-		int x1, x2, x3, y1, y2, y3;
-		Vector2 pos1, pos2, pos3;
-
-
-	/*
-	 * validTouch = false;
-			hexagonRotationStatus = true;
-			*/
-
-
-		/* Clear previous outlines */
-		DestructOutline();
-
-		foreach(Hexagon hex in hexList) {
-			hex.gameObject.GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeAll;
-		}
-
-		/* 
-		 * TODO
-		 * Make here look nice 
-		 */
-
-		x1 = outlineList[0].GetX();
-		x2 = outlineList[1].GetX();
-		x3 = outlineList[2].GetX();
-
-		y1 = outlineList[0].GetY();
-		y2 = outlineList[1].GetY();
-		y3 = outlineList[2].GetY();
-
-		pos1 = outlineList[0].transform.position;
-		pos2 = outlineList[1].transform.position;
-		pos3 = outlineList[2].transform.position;
-		
-
-		if (clockWise) {
-			outlineList[2].Rotate(x1, y1, pos1);
-			outlineList[1].Rotate(x3, y3, pos3);
-			outlineList[0].Rotate(x2, y2, pos2);
-		}
-
-		else {
-			outlineList[1].Rotate(x1, y1, pos1);
-			outlineList[2].Rotate(x2, y2, pos2);
-			outlineList[0].Rotate(x3, y3, pos3);
-		}
-
-		StartCoroutine(RotationCheckCoroutine());
-	}
-
-
-
-	/* Function to */
-	private IEnumerator RotationCheckCoroutine() {
-		bool exitStatus;
-
-		do {
-			exitStatus = true;
-			foreach (Hexagon hex in outlineList) {
-				if (hex.IsRotating())
-					exitStatus = false;
-			}
-			yield return new WaitForSeconds(0.2f);
-		} while (exitStatus);
-
-		hexagonRotationStatus = false;
-		ConstructOutline();
 	}
 
 
@@ -163,6 +88,98 @@ public class GridManager : SuperClass {
 
 
 
+	/* 
+		 * TODO
+		 * Make here look nice 
+		 */
+	/* Function to rotate the hex group on touch position */
+	public void Rotate(bool clockWise) {
+		int x1, x2, x3, y1, y2, y3;
+		Vector2 pos1, pos2, pos3;
+
+
+		/* Specifying that rotation started and destroying outliner*/
+		hexagonRotationStatus = true;
+		DestructOutline();
+		FreezeGrid();
+
+		x1 = outlineList[0].GetX();
+		x2 = outlineList[1].GetX();
+		x3 = outlineList[2].GetX();
+
+		y1 = outlineList[0].GetY();
+		y2 = outlineList[1].GetY();
+		y3 = outlineList[2].GetY();
+
+		pos1 = outlineList[0].transform.position;
+		pos2 = outlineList[1].transform.position;
+		pos3 = outlineList[2].transform.position;
+
+
+		if (clockWise) {
+			outlineList[2].Rotate(x1, y1, pos1);
+			outlineList[1].Rotate(x3, y3, pos3);
+			outlineList[0].Rotate(x2, y2, pos2);
+		}
+
+		else {
+			outlineList[1].Rotate(x1, y1, pos1);
+			outlineList[2].Rotate(x2, y2, pos2);
+			outlineList[0].Rotate(x3, y3, pos3);
+		}
+
+		StartCoroutine(RotationCheckCoroutine());
+
+
+		
+		List<Hexagon> explList = CheckExplosion();
+		foreach (Hexagon hex in CheckExplosion()) {
+			print("(" + hex.GetX() + ", " + hex.GetY() + ")");
+		}
+	}
+
+
+
+	/* Checks coroutine status variables to see if game is ready to take input */
+	public bool InputAvailabile() {
+		return !gameInitializiationStatus && !hexagonRotationStatus;
+	}
+
+
+
+	/* Returns a list that contains hexagons which are ready to explode, returns an empty list if there is none */
+	private List<Hexagon> CheckExplosion() {
+		List<Hexagon> explosiveList = new List<Hexagon>();
+
+
+
+		return explosiveList;
+	}
+
+
+
+	#region RotateHelpers
+	/* Function to check if all hexagons finished rotating */
+	private IEnumerator RotationCheckCoroutine() {
+		bool exitStatus;
+
+		do {
+			exitStatus = true;
+			foreach (Hexagon hex in outlineList) {
+				if (hex.IsRotating())
+					exitStatus = false;
+			}
+			yield return new WaitForSeconds(0.2f);
+		} while (exitStatus);
+
+		hexagonRotationStatus = false;
+		ConstructOutline();
+	}
+	#endregion
+
+
+
+	#region SelectHelpers
 	/* Helper function for Select() to find all 3 hexagons to be outlined */
 	private List<Hexagon> FindHexagonGroup() {
 		List<Hexagon> returnValue = new List<Hexagon>();
@@ -193,8 +210,7 @@ public class GridManager : SuperClass {
 		return returnValue;
 	}
 
-
-
+	
 	/* Helper function for FindHexagonGroup() to locate two other hexagons */
 	private void FindOtherHexagons(out Vector2 first, out Vector2 second) {
 		Hexagon.NeighbourHexes neighbours = selectedHexagon.GetNeighbours();
@@ -221,9 +237,11 @@ public class GridManager : SuperClass {
 			}
 		} while (!breakLoop);
 	}
+	#endregion
 
 
 
+	#region OutlineMethods
 	/* Function to clear the outline objects */
 	private void DestructOutline() {
 		if (outParent.transform.childCount > ZERO) {
@@ -231,7 +249,7 @@ public class GridManager : SuperClass {
 				Destroy(child.gameObject);
 		}
 	}
-
+	
 
 
 	/* Function to build outline */
@@ -261,13 +279,17 @@ public class GridManager : SuperClass {
 			outlineInner.transform.parent = outline.transform;
 		}
 	}
+	#endregion
 
 
 
 	/* Function to initialize grid with a delay between each hexagon instantiation */
 	private IEnumerator InitialHexagonProducer (float startPos, Vector3 startVector) {
+		bool status = true;
 		gameInitializiationStatus = true;
 
+
+		/* Create desired number of Hexagons in given grid size */
 		for (int i = 0; i<gridHeight; ++i) {
 			startVector.x = startPos;
 			for (int j = 0; j<gridWidth; ++j) {
@@ -282,14 +304,39 @@ public class GridManager : SuperClass {
 			}
 		}
 
+
+		/* Make sure if all hexagons completed their fall state */
+		do {
+			status = true;
+			foreach (Hexagon hex in hexList)
+				if (hex.IsMoving())
+					status = false;
+
+			yield return new WaitForSeconds(0.01f);
+		} while (!status);
+
+
+		/* Freeze the grid for better visualasion and indicate the end of initializiation */
 		gameInitializiationStatus = false;
+		//FreezeGrid();
 	}
 
 
 
-	/* Checks coroutine status variables to see if game is ready to take input */
-	public bool InputAvailabile() {
-		return !gameInitializiationStatus && !hexagonRotationStatus;
+	/* Freezes all hexagons on game grid */
+	private void FreezeGrid() {
+		foreach (Hexagon hex in hexList) {
+			hex.Freeze();
+		}
+	}
+
+
+
+	/* Unfreezes all the hexagons on game grid */
+	private void UnfreezeGrid() {
+		foreach (Hexagon hex in hexList) {
+			hex.SetFree();
+		}
 	}
 
 

@@ -21,8 +21,6 @@ public class InputManager : SuperClass {
 			Vector2 touchPos = new Vector2(wp.x, wp.y);
 			Collider2D collider = Physics2D.OverlapPoint(touchPos);
 
-			print("haydaa");
-
 			/* Processing input */
 			TouchDetection();
 			CheckSelection(collider);
@@ -50,7 +48,6 @@ public class InputManager : SuperClass {
 			/* Select hexagon if touch ended */
 			if (Input.GetTouch(ZERO).phase == TouchPhase.Ended && validTouch) {
 				validTouch = false;
-				print("helele");
 				selectedHexagon = GridManagerObject.Select(collider);
 			}
 		}

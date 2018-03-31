@@ -6,6 +6,7 @@ public class Hexagon : SuperClass {
 	GridManager GridManagerObject;
 	public int x;
 	public int y;
+	private Color color;
 	private Vector2 lerpPosition;
 	private bool lerp;
 
@@ -63,6 +64,34 @@ public class Hexagon : SuperClass {
 
 
 
+	/* Sets rigidbody constraints to disable any movement */
+	public void Freeze() {
+		GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeAll;
+	}
+
+	
+
+	/* Sets rigidbody constraints to enable vertical movement */
+	public void SetFree() {
+		GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezePositionX;
+	}
+
+
+
+	/* Returns the LERP status to indicate the end of rotation */
+	public bool IsRotating() {
+		return lerp;
+	}
+
+
+
+	/* TODO: Implement here */
+	public bool IsMoving() {
+		return false;
+	}
+
+
+
 	/* Builds a struct from grid position of neighbour hexagons and returns it */
 	public NeighbourHexes GetNeighbours() {
 		NeighbourHexes neighbours;
@@ -96,8 +125,10 @@ public class Hexagon : SuperClass {
 	/* Setters & Getters */
 	public void SetX(int value) { x = value; }
 	public void SetY(int value) { y = value; }
+	public void SetColor(Color newColor) { color = newColor; }
 
 	public int GetX() { return x; }
 	public int GetY() { return y; }
-	public bool IsRotating() { return lerp; }
+	public Color GetColor() { return color; }
+	
 }
