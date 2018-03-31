@@ -12,6 +12,7 @@ public class GridManager : SuperClass {
 	public GameObject hexPrefab;
 	public GameObject hexParent;
 	public GameObject outParent;
+	public Sprite outlineSprite;
 	public Sprite hexagonSprite;
 
 	/* Member variables */
@@ -24,7 +25,8 @@ public class GridManager : SuperClass {
 	private List<Hexagon> hexList;
 	private List<Hexagon> outlineList;
 
-	
+	private bool gameInitializiationStatus;
+	private bool hexagonRotationStatus;
 
 
 
@@ -40,6 +42,8 @@ public class GridManager : SuperClass {
 
 	/* Initializing variables */
 	private void Start() {
+		gameInitializiationStatus = false;
+		hexagonRotationStatus = false;
 		hexList = new List<Hexagon>();
 		outlineList = new List<Hexagon>();
 	}
@@ -67,7 +71,7 @@ public class GridManager : SuperClass {
 
 	/* Function to take and analyze input */
 	private void InputManager() {
-		if (Input.touchCount > ZERO) {
+		if (Input.touchCount > ZERO && InputAvailability()) {
 			/* Taking collider of touched object to a variable */
 			Vector3 wp = Camera.main.ScreenToWorldPoint(Input.GetTouch(ZERO).position);
 			Vector2 touchPos = new Vector2(wp.x, wp.y);
@@ -115,15 +119,16 @@ public class GridManager : SuperClass {
 					 * swipeRightUp specifies if swipe direction was right or up
 					 * touchThanHex specifies if touch position value is bigger than hexagon position on triggered axis
 					 * If X axis triggered rotation with same direction swipe then rotate clockwise else rotate counter clockwise
-					 * If Y axis triggered rotation with different direction swipe then rotate clockwise else rotate counter clocwise
+					 * If Y axis triggered rotation with opposite direction swipe then rotate clockwise else rotate counter clocwise
 					 */
 					bool triggerOnX = Mathf.Abs(distanceX) > Mathf.Abs(distanceY);
 					bool swipeRightUp = triggerOnX ? distanceX > ZERO : distanceY > ZERO;
 					bool touchThanHex = triggerOnX ? touchCurrentPos.y > screenPosition.y : touchCurrentPos.x > screenPosition.x;
 					bool clockWise = triggerOnX ? swipeRightUp == touchThanHex : swipeRightUp != touchThanHex;
 
-					Rotate(clockWise);
 					validTouch = false;
+					hexagonRotationStatus = true;
+					Rotate(clockWise);
 				}
 			}
 		}
@@ -164,7 +169,7 @@ public class GridManager : SuperClass {
 		if (clockWise) {
 			outlineList[2].Rotate(x1, y1, pos1);
 			outlineList[1].Rotate(x3, y3, pos3);
-			outlineList[0].Rotate(x2, y2, pos2); 
+			outlineList[0].Rotate(x2, y2, pos2);
 		}
 
 		else {
@@ -172,17 +177,27 @@ public class GridManager : SuperClass {
 			outlineList[2].Rotate(x2, y2, pos2);
 			outlineList[0].Rotate(x3, y3, pos3);
 		}
+
+		StartCoroutine(RotationCheckCoroutine());
 	}
 
 
 
-	/* Helper function to Rotate() for rotation animation */
-	private IEnumerator RotationCoroutine() {
-		for(int i=0; i<outParent.transform.childCount; ++i) {
-			print(outParent.transform.GetChild(i).gameObject.transform.position);
-		}
-		yield return new WaitForSeconds(0.01f);
-		
+	/* Function to */
+	private IEnumerator RotationCheckCoroutine() {
+		bool exitStatus;
+
+		do {
+			exitStatus = true;
+			foreach (Hexagon hex in outlineList) {
+				if (hex.IsRotating())
+					exitStatus = false;
+			}
+			yield return new WaitForSeconds(0.2f);
+		} while (exitStatus);
+
+		hexagonRotationStatus = false;
+		ConstructOutline();
 	}
 
 
@@ -286,15 +301,15 @@ public class GridManager : SuperClass {
 			outline.transform.parent = outParent.transform;
 
 			outline.AddComponent<SpriteRenderer>();
-			outline.GetComponent<SpriteRenderer>().sprite = hexagonSprite;
-			outline.GetComponent<SpriteRenderer>().color = Color.black;
-			outline.transform.position = go.transform.position;
+			outline.GetComponent<SpriteRenderer>().sprite = outlineSprite;
+			outline.GetComponent<SpriteRenderer>().color = Color.white;
+			outline.transform.position = new Vector3(go.transform.position.x, go.transform.position.y, -1);
 			outline.transform.localScale = HEX_OUTLINE_SCALE;
 
 			outlineInner.AddComponent<SpriteRenderer>();
 			outlineInner.GetComponent<SpriteRenderer>().sprite = hexagonSprite;
 			outlineInner.GetComponent<SpriteRenderer>().color = go.GetComponent<SpriteRenderer>().color;
-			outlineInner.transform.position = new Vector3(go.transform.position.x, go.transform.position.y, -1);
+			outlineInner.transform.position = new Vector3(go.transform.position.x, go.transform.position.y, -2);
 			outlineInner.transform.localScale = go.transform.localScale;
 			outlineInner.transform.parent = outline.transform;
 		}
@@ -304,6 +319,8 @@ public class GridManager : SuperClass {
 
 	/* Function to initialize grid with a delay between each hexagon instantiation */
 	private IEnumerator InitialHexagonProducer (float startPos, Vector3 startVector) {
+		gameInitializiationStatus = true;
+
 		for (int i = 0; i<gridHeight; ++i) {
 			startVector.x = startPos;
 			for (int j = 0; j<gridWidth; ++j) {
@@ -317,6 +334,15 @@ public class GridManager : SuperClass {
 				yield return new WaitForSeconds(0.02f);
 			}
 		}
+
+		gameInitializiationStatus = false;
+	}
+
+
+
+	/*  */
+	private bool InputAvailability() {
+		return !gameInitializiationStatus && !hexagonRotationStatus;
 	}
 
 

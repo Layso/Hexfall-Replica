@@ -99,4 +99,5 @@ public class Hexagon : SuperClass {
 
 	public int GetX() { return x; }
 	public int GetY() { return y; }
+	public bool IsRotating() { return lerp; }
 }
