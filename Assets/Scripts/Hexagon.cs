@@ -76,7 +76,8 @@ public class Hexagon : SuperClass {
 	 * First part checks if middle column (index of mid-col (int)(GridWidth/2))
 	 * is on an even or odd numbered index. This specifies whether grid starts with
 	 * a stepper or without. Second part checks if hexagon is on an even or odd numbered
-	 * index. If their indexes are both even or both even, then hexagon is on a stepper */
+	 * index. If their indexes are both even or both even, then hexagon is on a stepper 
+	 * Implemented using Karnough maps */
 	private bool OnStepper() {
 		return ((GridManagerObject.GetGridWidth()/HALF)%2 == GetX()%2);
 	}

@@ -24,10 +24,10 @@ public class GridManager : SuperClass {
 	private List<Hexagon> hexList;
 	private List<Hexagon> outlineList;
 
+	
 
 
-	
-	
+
 
 
 	/* Assigning singleton if available */
@@ -36,8 +36,6 @@ public class GridManager : SuperClass {
 			instance = this;
 		else
 			Destroy(this);
-
-		hmm = 2;
 	}
 
 	/* Initializing variables */
@@ -109,8 +107,22 @@ public class GridManager : SuperClass {
 				float distanceY = touchCurrentPos.y - touchStartPos.y;
 
 
-				if (Mathf.Abs(distanceX) > HEX_ROTATE_SLIDE_DISTANCE || Mathf.Abs(distanceY) > HEX_ROTATE_SLIDE_DISTANCE) {
-					Rotate();
+				if ((Mathf.Abs(distanceX) > HEX_ROTATE_SLIDE_DISTANCE || Mathf.Abs(distanceY) > HEX_ROTATE_SLIDE_DISTANCE) && selectedHexagon != null) {
+					Vector3 screenPosition = Camera.main.WorldToScreenPoint(selectedHexagon.transform.position);
+
+					/* Simplifying long boolean expression thanks to ternary condition
+					 * triggerOnX specifies if rotate action triggered from a horizontal or vertical swipe 
+					 * swipeRightUp specifies if swipe direction was right or up
+					 * touchThanHex specifies if touch position value is bigger than hexagon position on triggered axis
+					 * If X axis triggered rotation with same direction swipe then rotate clockwise else rotate counter clockwise
+					 * If Y axis triggered rotation with different direction swipe then rotate clockwise else rotate counter clocwise
+					 */
+					bool triggerOnX = Mathf.Abs(distanceX) > Mathf.Abs(distanceY);
+					bool swipeRightUp = triggerOnX ? distanceX > ZERO : distanceY > ZERO;
+					bool touchThanHex = triggerOnX ? touchCurrentPos.y > screenPosition.y : touchCurrentPos.x > screenPosition.x;
+					bool clockWise = triggerOnX ? swipeRightUp == touchThanHex : swipeRightUp != touchThanHex;
+
+					Rotate(clockWise);
 					validTouch = false;
 				}
 			}
@@ -120,20 +132,25 @@ public class GridManager : SuperClass {
 	
 	
 	/* Function to rotate the hex group on touch position */
-	private void Rotate() {
+	private void Rotate(bool clockWise) {
 		/* Clear previous outlines */
-		if (outParent.transform.childCount > ZERO) {
-			foreach (Transform child in outParent.transform)
-				Destroy(child.gameObject);
-		}
+		DestructOutline();
 
 		foreach(Hexagon hex in hexList) {
 			hex.gameObject.GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeAll;
 		}
 
-		outlineList[0].SetLerpPosition(outlineList[1].transform.position);
-		outlineList[1].SetLerpPosition(outlineList[2].transform.position);
-		outlineList[2].SetLerpPosition(outlineList[0].transform.position);
+		if (!clockWise) {
+			outlineList[0].SetLerpPosition(outlineList[2].transform.position);
+			outlineList[1].SetLerpPosition(outlineList[0].transform.position);
+			outlineList[2].SetLerpPosition(outlineList[1].transform.position);
+		}
+
+		else {
+			outlineList[0].SetLerpPosition(outlineList[1].transform.position);
+			outlineList[1].SetLerpPosition(outlineList[2].transform.position);
+			outlineList[2].SetLerpPosition(outlineList[0].transform.position); 
+		}
 	}
 
 
@@ -152,38 +169,13 @@ public class GridManager : SuperClass {
 	/* Function to select the hex group on touch position */
 	private void Select() {
 		/* Clear previous outlines */
-		if (outParent.transform.childCount > ZERO) {
-			foreach (Transform child in outParent.transform)
-				Destroy(child.gameObject);
-		}
+		DestructOutline();
 
 		/* Find hex group to be outlined */
 		outlineList = FindHexagonGroup();
-		
-		/* Creating outlines by creating black hexagons on same position with selected 
-		 * hexagons and making them bigger than actual hexagons. AKA fake shader programming 
-		 * Yes, I should learn shader programming... 
-		 */
-		foreach (Hexagon outlinedHexagon in outlineList) {
-			GameObject go = outlinedHexagon.gameObject;
-			GameObject outline = new GameObject("Outline");
-			GameObject outlineInner = new GameObject("Inner Object");
 
-			outline.transform.parent = outParent.transform;
-
-			outline.AddComponent<SpriteRenderer>();
-			outline.GetComponent<SpriteRenderer>().sprite = hexagonSprite;
-			outline.GetComponent<SpriteRenderer>().color = Color.black;
-			outline.transform.position = go.transform.position;
-			outline.transform.localScale = HEX_OUTLINE_SCALE;
-
-			outlineInner.AddComponent<SpriteRenderer>();
-			outlineInner.GetComponent<SpriteRenderer>().sprite = hexagonSprite;
-			outlineInner.GetComponent<SpriteRenderer>().color = go.GetComponent<SpriteRenderer>().color;
-			outlineInner.transform.position = new Vector3(go.transform.position.x, go.transform.position.y, -1);
-			outlineInner.transform.localScale = go.transform.localScale;
-			outlineInner.transform.parent = outline.transform;
-		}
+		/* Build outline around hex group */
+		ConstructOutline();
 	}
 
 
@@ -240,6 +232,46 @@ public class GridManager : SuperClass {
 				breakLoop = true;
 			}
 		} while (!breakLoop);
+	}
+
+
+
+	/* Function to clear the outline objects */
+	private void DestructOutline() {
+		if (outParent.transform.childCount > ZERO) {
+			foreach (Transform child in outParent.transform)
+				Destroy(child.gameObject);
+		}
+	}
+
+
+
+	/* Function to build outline */
+	private void ConstructOutline() {
+		/* Creating outlines by creating black hexagons on same position with selected 
+		 * hexagons and making them bigger than actual hexagons. AKA fake shader programming 
+		 * Yes, I should learn shader programming... 
+		 */
+		foreach (Hexagon outlinedHexagon in outlineList) {
+			GameObject go = outlinedHexagon.gameObject;
+			GameObject outline = new GameObject("Outline");
+			GameObject outlineInner = new GameObject("Inner Object");
+
+			outline.transform.parent = outParent.transform;
+
+			outline.AddComponent<SpriteRenderer>();
+			outline.GetComponent<SpriteRenderer>().sprite = hexagonSprite;
+			outline.GetComponent<SpriteRenderer>().color = Color.black;
+			outline.transform.position = go.transform.position;
+			outline.transform.localScale = HEX_OUTLINE_SCALE;
+
+			outlineInner.AddComponent<SpriteRenderer>();
+			outlineInner.GetComponent<SpriteRenderer>().sprite = hexagonSprite;
+			outlineInner.GetComponent<SpriteRenderer>().color = go.GetComponent<SpriteRenderer>().color;
+			outlineInner.transform.position = new Vector3(go.transform.position.x, go.transform.position.y, -1);
+			outlineInner.transform.localScale = go.transform.localScale;
+			outlineInner.transform.parent = outline.transform;
+		}
 	}
 
 
