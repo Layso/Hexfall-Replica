@@ -24,3 +24,12 @@ Author: Layso
 - A touch on a different hexagon will reset direction counter which selects first set of hexagons (pivot, up, up-left)
 - A function implemented to specify which hexagons are selected currently by outlining them
 - Performance improvements can be done due to massive object creation and component creation process
+- Menu manager script created to switch from main menu to game screen
+- First demo APK created to test the touch and select mechanism, seems fine
+
+
+
+31/03/2018 - Saturday
+---------------------
+- Some hexagon specific functions taken from GridManager class to Hexagon itself for logical reasons
+- First rotation attempt seems successfull. Still needs some adjustments for neighbour hexagons
