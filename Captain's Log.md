@@ -34,3 +34,4 @@ Author: Layso
 - Some hexagon specific functions taken from GridManager class to Hexagon itself for logical reasons
 - First rotation attempt seems successfull. Still needs some adjustments for neighbour hexagons
 - Rotation fully implemented through out the day
+- InputManager class created to seperate input prcoess from input checks, GridManager now handles inputs according to InputManager's directions
