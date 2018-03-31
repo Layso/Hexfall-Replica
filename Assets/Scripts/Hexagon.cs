@@ -29,7 +29,9 @@ public class Hexagon : SuperClass {
 		lerp = false;
 		x = -1;
 		y = -1;
-		GetComponent<SpriteRenderer>().color = Color.cyan;
+
+
+		GetComponent<SpriteRenderer>().color = new Color(Random.value, Random.value, Random.value);
 	}
 
 	void Start() {
@@ -42,12 +44,21 @@ public class Hexagon : SuperClass {
 			float newY = Mathf.Lerp(transform.position.y, lerpPosition.y, Time.deltaTime*HEXAGON_ROTATE_CONSTANT);
 			transform.position = new Vector2(newX, newY);
 
-			if (Vector3.Distance(transform.position, lerpPosition) < HEXAGON_ROTATE_THRESHHOLD) {
-				print("ehe");
+			if (Vector3.Distance(transform.position, lerpPosition) < HEXAGON_ROTATE_THRESHOLD) {
 				transform.position = lerpPosition;
 				lerp = false;
 			}
 		}
+	}
+
+
+
+	/* Function to save rotate changes */
+	public void Rotate(int newX, int newY, Vector2 newPos) {
+		lerpPosition = newPos;
+		SetX(newX);
+		SetY(newY);
+		lerp = true;
 	}
 
 
@@ -72,14 +83,12 @@ public class Hexagon : SuperClass {
 
 
 	/* Helper function to find out if Hexagon standing on stepper or on base.
-	 * Doesn't required new function to operate but needs space to be explained.
-	 * First part checks if middle column (index of mid-col (int)(GridWidth/2))
-	 * is on an even or odd numbered index. This specifies whether grid starts with
-	 * a stepper or without. Second part checks if hexagon is on an even or odd numbered
-	 * index. If their indexes are both even or both even, then hexagon is on a stepper 
-	 * Implemented using Karnough maps */
+	 * midIndex is the index of middle column of the grid
+	 * If index of both middleColumn and current column has same parity then hexagon is on stepper
+	 */
 	private bool OnStepper() {
-		return ((GridManagerObject.GetGridWidth()/HALF)%2 == GetX()%2);
+		int midIndex = GridManagerObject.GetGridWidth()/HALF;
+		return (midIndex%2 == GetX()%2);
 	}
 
 
@@ -87,10 +96,7 @@ public class Hexagon : SuperClass {
 	/* Setters & Getters */
 	public void SetX(int value) { x = value; }
 	public void SetY(int value) { y = value; }
-	public void SetLerpPosition(Vector2 vector) { lerp = true; lerpPosition = vector; }
-
 
 	public int GetX() { return x; }
 	public int GetY() { return y; }
-	public Vector2 GetLerpPosition() { return lerpPosition; }
 }

@@ -23,7 +23,7 @@ public class SuperClass : MonoBehaviour {
 	protected const int SELECTION_STATUS_COUNT = 6;
 	protected const int HEX_ROTATE_SLIDE_DISTANCE = 5;
 	protected readonly Vector3 HEX_OUTLINE_SCALE = new Vector3(0.65f, 0.65f, 0.65f);
-	protected const float HEXAGON_ROTATE_THRESHHOLD = 0.05f;
+	protected const float HEXAGON_ROTATE_THRESHOLD = 0.05f;
 	protected const int HEXAGON_ROTATE_CONSTANT = 9;
 	protected bool gameInitializiation;
 	protected bool hexagonRotation;

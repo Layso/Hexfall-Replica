@@ -133,6 +133,9 @@ public class GridManager : SuperClass {
 	
 	/* Function to rotate the hex group on touch position */
 	private void Rotate(bool clockWise) {
+		int x1, x2, x3, y1, y2, y3;
+		Vector2 pos1, pos2, pos3;
+
 		/* Clear previous outlines */
 		DestructOutline();
 
@@ -140,16 +143,34 @@ public class GridManager : SuperClass {
 			hex.gameObject.GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeAll;
 		}
 
-		if (!clockWise) {
-			outlineList[0].SetLerpPosition(outlineList[2].transform.position);
-			outlineList[1].SetLerpPosition(outlineList[0].transform.position);
-			outlineList[2].SetLerpPosition(outlineList[1].transform.position);
+		/* 
+		 * TODO
+		 * Make here look nice 
+		 */
+
+		x1 = outlineList[0].GetX();
+		x2 = outlineList[1].GetX();
+		x3 = outlineList[2].GetX();
+
+		y1 = outlineList[0].GetY();
+		y2 = outlineList[1].GetY();
+		y3 = outlineList[2].GetY();
+
+		pos1 = outlineList[0].transform.position;
+		pos2 = outlineList[1].transform.position;
+		pos3 = outlineList[2].transform.position;
+		
+
+		if (clockWise) {
+			outlineList[2].Rotate(x1, y1, pos1);
+			outlineList[1].Rotate(x3, y3, pos3);
+			outlineList[0].Rotate(x2, y2, pos2); 
 		}
 
 		else {
-			outlineList[0].SetLerpPosition(outlineList[1].transform.position);
-			outlineList[1].SetLerpPosition(outlineList[2].transform.position);
-			outlineList[2].SetLerpPosition(outlineList[0].transform.position); 
+			outlineList[1].Rotate(x1, y1, pos1);
+			outlineList[2].Rotate(x2, y2, pos2);
+			outlineList[0].Rotate(x3, y3, pos3);
 		}
 	}
 
@@ -183,23 +204,28 @@ public class GridManager : SuperClass {
 	/* Helper function for Select() to find all 3 hexagons to be outlined */
 	private List<Hexagon> FindHexagonGroup() {
 		List<Hexagon> returnValue = new List<Hexagon>();
+		Hexagon firstHex = null, secondHex = null;
 		Vector2 firstPos, secondPos;
-
 
 		/* Finding 2 other required hexagon coordinates on grid */
 		FindOtherHexagons(out firstPos, out secondPos);
 
-		/* Adding selected hexagons to selected list */
-		returnValue.Add(selectedHexagon);
+		/* Searching for other 2 hexagons */
 		foreach (Hexagon hex in hexList) {
 			if (firstPos.x == hex.GetX() && firstPos.y == hex.GetY()) {
-				returnValue.Add(hex.GetComponent<Hexagon>());
+				firstHex = hex;
 			}
 
 			else if(secondPos.x == hex.GetX() && secondPos.y == hex.GetY()) {
-				returnValue.Add(hex.GetComponent<Hexagon>());
+				secondHex = hex;
 			}
 		}
+
+		/* Adding selected hexagons in pivot-first-second order to list */
+		returnValue.Add(selectedHexagon);
+		returnValue.Add(firstHex);
+		returnValue.Add(secondHex);
+
 
 
 		return returnValue;
