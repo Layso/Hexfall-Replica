@@ -35,3 +35,10 @@ Author: Layso
 - First rotation attempt seems successfull. Still needs some adjustments for neighbour hexagons
 - Rotation fully implemented through out the day
 - InputManager class created to seperate input prcoess from input checks, GridManager now handles inputs according to InputManager's directions
+
+
+
+01/04/2018 - Sunday
+-------------------
+- Whole day spent to implement hexagon explosion mechanic, just to find out at the end of day that there was an indexing problem
+- Exploded hexagon will be counted by UserInterfaceManager to show score
