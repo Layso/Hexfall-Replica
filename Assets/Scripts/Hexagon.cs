@@ -6,10 +6,10 @@ public class Hexagon : SuperClass {
 	GridManager GridManagerObject;
 	public int x;
 	public int y;
-	private Color color;
+	public Color color;
 	private Vector2 lerpPosition;
 	private bool lerp;
-
+	public Vector2 speed;
 
 
 	/* Struct to hold neighboor grid coordinates */
@@ -27,16 +27,13 @@ public class Hexagon : SuperClass {
 	/* Using awake since Start() will be too late for instantiation */
 	void Awake () {
 		/* Assigning invalid indexes to indicate unused hexagon */
-		lerp = false;
 		x = -1;
 		y = -1;
-
-
-		GetComponent<SpriteRenderer>().color = new Color(Random.value, Random.value, Random.value);
 	}
 
 	void Start() {
 		GridManagerObject = GridManager.instance;
+		lerp = false;
 	}
 
 	void Update() {
@@ -50,8 +47,14 @@ public class Hexagon : SuperClass {
 				lerp = false;
 			}
 		}
+
+		speed = GetComponent<Rigidbody2D>().velocity;
 	}
 
+	void FixedUpdate() {
+		/*if (GetComponent<Rigidbody2D>().velocity.magnitude > 10)
+			GetComponent<Rigidbody2D>().velocity = Vector2.down.*10;*/
+	}
 
 
 	/* Function to save rotate changes */
@@ -73,7 +76,7 @@ public class Hexagon : SuperClass {
 
 	/* Sets rigidbody constraints to enable vertical movement */
 	public void SetFree() {
-		GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezePositionX;
+		GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
 	}
 
 
@@ -84,10 +87,15 @@ public class Hexagon : SuperClass {
 	}
 
 
-
-	/* TODO: Implement here */
+	
 	public bool IsMoving() {
-		return false;
+		return !(GetComponent<Rigidbody2D>().velocity == Vector2.zero);
+	}
+
+
+
+	public void Exploded() {
+		GetComponent<Collider2D>().isTrigger = true;
 	}
 
 
@@ -125,10 +133,10 @@ public class Hexagon : SuperClass {
 	/* Setters & Getters */
 	public void SetX(int value) { x = value; }
 	public void SetY(int value) { y = value; }
-	public void SetColor(Color newColor) { color = newColor; }
+	public void SetColor(Color newColor) { GetComponent<SpriteRenderer>().color = newColor; color=newColor; }
 
 	public int GetX() { return x; }
 	public int GetY() { return y; }
-	public Color GetColor() { return color; }
+	public Color GetColor() { return GetComponent<SpriteRenderer>().color; }
 	
 }

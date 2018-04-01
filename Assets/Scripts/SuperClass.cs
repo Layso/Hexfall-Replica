@@ -15,6 +15,7 @@ public class SuperClass : MonoBehaviour {
 
 	protected const int DEFAULT_GRID_WIDTH = 7;
 	protected const int DEFAULT_GRID_HEIGHT = 8;
+	protected const int DEFAULT_COLOR_COUNT = 5;
 	protected const bool DEFAULT_COLORBLIND_ON = false;
 	protected const bool DEFAULT_COLORBLIND_OFF = true;
 
@@ -23,6 +24,8 @@ public class SuperClass : MonoBehaviour {
 	protected const int SELECTION_STATUS_COUNT = 6;
 	protected const int HEX_ROTATE_SLIDE_DISTANCE = 5;
 	protected readonly Vector3 HEX_OUTLINE_SCALE = new Vector3(0.685f, 0.685f, 0.685f);
+	protected readonly Vector2 HEX_START_POSITION = new Vector3(0f, 6f, 0f);
 	protected const float HEXAGON_ROTATE_THRESHOLD = 0.05f;
 	protected const int HEXAGON_ROTATE_CONSTANT = 9;
+	protected const int SCORE_CONSTANT = 5;
 }
