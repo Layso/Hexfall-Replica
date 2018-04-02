@@ -496,7 +496,7 @@ public class GridManager : SuperClass {
 
 	/* Checks coroutine status variables to see if game is ready to take input */
 	public bool InputAvailabile() {
-		return !hexagonProductionStatus && !gameEnd;
+		return !hexagonProductionStatus && !gameEnd && !hexagonRotationStatus && !hexagonExplosionStatus;
 	}
 
 
