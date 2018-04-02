@@ -20,16 +20,17 @@ public class GridManager : SuperClass {
 	private int gridHeight;
 	private int selectionStatus;
 	private bool colorblindMode;
+	private Vector2 selectedPosition;
 	private Hexagon selectedHexagon;
 	private List<List<Hexagon>> gameGrid;
-	private List<Hexagon> outlineList;
+	private List<Hexagon> selectedGroup;
 	private List<Color> colorList;
 
 	/* Coroutine status variables */
 	private bool gameInitializiationStatus;
 	private bool hexagonRotationStatus;
-	private bool startExplosion;
 	private bool hexagonExplosionStatus;
+	private bool hexagonProductionStatus;
 
 
 
@@ -42,46 +43,43 @@ public class GridManager : SuperClass {
 	}
 
 	void Start() {
-		startExplosion = false;
 		hexagonRotationStatus = false;
 		hexagonExplosionStatus = false;
-		gameInitializiationStatus = false;
-		outlineList = new List<Hexagon>();
+		hexagonProductionStatus = false;
+		selectedGroup = new List<Hexagon>();
 		gameGrid = new List<List<Hexagon>>();
 	}
 
-	void FixedUpdate() {
-		if (startExplosion) {
-			startExplosion = false;
-			UnfreezeGrid();
-			StartCoroutine(FillTheBlanks(GetMissingCells(CheckExplosion(gameGrid))));
-		}
+	void Update() {
 	}
 
 
 	/* Wrapper function for grid initializer coroutine. Width and height should be set before this call */
 	public void InitializeGrid() {
-		float startX = GetGridStartCoordinateX();
-		Vector3 startPos = new Vector3(0, 10, 0);
+		List<int> missingCells = new List<int>();
 
 
-		/* Initialize grid list */
+		/* Initialize gameGrid and fill missingCells */
 		for (int i = 0; i<GetGridWidth(); ++i) {
-			List<Hexagon> subList = new List<Hexagon>();
-			gameGrid.Add(subList);
+			for (int j = 0; j<GetGridHeight(); ++j)
+				missingCells.Add(i);
+
+			gameGrid.Add(new List<Hexagon>());
 		}
 
 		/* Fill grid with hexagons */
-		StartCoroutine(InitialHexagonProducer(startX, startPos));
+		StartCoroutine(ProduceHexagons(missingCells));
 	}
 
 
 
 	/* Function to select the hex group on touch position, returns the selected hexagon */
-	public Hexagon Select(Collider2D collider) {
+	public void Select(Collider2D collider) {
 		/* If selection is different than current hex, reset status and variable */
 		if (selectedHexagon == null || !selectedHexagon.GetComponent<Collider2D>().Equals(collider)) {
 			selectedHexagon = collider.gameObject.GetComponent<Hexagon>();
+			selectedPosition.x = selectedHexagon.GetX();
+			selectedPosition.y = selectedHexagon.GetX();
 			selectionStatus = 0;
 		}
 
@@ -90,15 +88,8 @@ public class GridManager : SuperClass {
 			selectionStatus = (++selectionStatus) % SELECTION_STATUS_COUNT;
 		}
 
-		/* Clear previous outlines */
-		DestructOutline();
-
-		/* Find hex group to be outlined */
-		outlineList = FindHexagonGroup();
-		/* Build outline around hex group */
+		FindHexagonGroup();
 		ConstructOutline();
-
-		return selectedHexagon;
 	}
 
 
@@ -106,142 +97,29 @@ public class GridManager : SuperClass {
 	/* Function to rotate the hex group on touch position */
 	public void Rotate(bool clockWise) {
 		/* Specifying that rotation started and destroying outliner*/
-		hexagonRotationStatus = true;
-		DestructOutline();
-		//FreezeGrid();
 		StartCoroutine(RotationCheckCoroutine(clockWise));
 	}
 
 
 
-	/* Returns a list that contains hexagons which are ready to explode, returns an empty list if there is none */
-	private List<Hexagon> CheckExplosion(List<List<Hexagon>> listToCheck) {
-		List<Hexagon> neighbourList = new List<Hexagon>();
-		List<Hexagon> explosiveList = new List<Hexagon>();
-		Hexagon currentHexagon;
-		Hexagon.NeighbourHexes currentNeighbours;
-		Color currentColor;
-
-		
-		for (int i=0; i<listToCheck.Count; ++i) {
-			for (int j=0; j<listToCheck[i].Count; ++j) {
-				/* Take current hexagon informations */
-				currentHexagon = listToCheck[i][j];
-				currentColor = currentHexagon.GetColor();
-				currentNeighbours = currentHexagon.GetNeighbours();
-
-				/* Fill neighbour list with up-upright-downright neighbours with valid positions */
-				if (IsValid(currentNeighbours.up)) neighbourList.Add(gameGrid[(int)currentNeighbours.up.x][(int)currentNeighbours.up.y]);
-				else neighbourList.Add(null);
-
-				if (IsValid(currentNeighbours.upRight))	neighbourList.Add(gameGrid[(int)currentNeighbours.upRight.x][(int)currentNeighbours.upRight.y]);
-				else neighbourList.Add(null);
-
-				if (IsValid(currentNeighbours.downRight)) neighbourList.Add(gameGrid[(int)currentNeighbours.downRight.x][(int)currentNeighbours.downRight.y]);
-				else neighbourList.Add(null);
-
-
-				/* If current 3 hexagons are all same color then add them to explosion list */
-				for (int k=0; k<neighbourList.Count-1; ++k) {
-					if (neighbourList[k] != null && neighbourList[k+1] != null) {
-						if (neighbourList[k].GetColor() == currentColor && neighbourList[k+1].GetColor() == currentColor) {
-							if (!explosiveList.Contains(neighbourList[k]))
-								explosiveList.Add(neighbourList[k]);
-							if (!explosiveList.Contains(neighbourList[k+1]))
-								explosiveList.Add(neighbourList[k+1]);
-							if (!explosiveList.Contains(currentHexagon))
-								explosiveList.Add(currentHexagon);
-						}
-					}
-				}
-
-				neighbourList.Clear();
-			}
-		}
-		
-		
-		return explosiveList;
-	}
-
-
-	#region ExplosionMethods
-	/* Function to clear explosive hexagons and tidy up the grid */
-	private List<int> GetMissingCells(List<Hexagon> list) {
-		List<int> missingColumns = new List<int>();
-
-		UserInterfaceManager.instance.Score(list.Count);
-		/* Remove hexagons from game grid */
-		foreach (Hexagon hex in list) {
-			gameGrid[hex.GetX()].Remove(hex);
-			missingColumns.Add(hex.GetX());
-			Destroy(hex.gameObject);
-		}
-
-		/* Re-assign left hexagon positions */
-		foreach (int i in missingColumns) {
-			for (int j=0; j<gameGrid[i].Count; ++j) {
-				gameGrid[i][j].SetY(j);
-			}
-		}
-
-
-		return missingColumns;
-	}
-
-
-
-	/* Function to produce new hexagons on missing columns */
-	private IEnumerator FillTheBlanks(List<int> columns) {
-		float startX = GetGridStartCoordinateX();
-		Vector3 startVector = HEX_START_POSITION;
-		
-		/* Create new Hexagon prefab and assign to grid */
-		foreach (int col in columns) {
-
-			startVector.x = startX + (HEX_DISTANCE_HORIZONTAL * col);
-			GameObject newObj = Instantiate(hexPrefab, startVector, Quaternion.identity, hexParent.transform);
-			Hexagon newHex = newObj.GetComponent<Hexagon>();
-
-			gameGrid[col].Add(newHex);
-			newHex.SetX(col);
-			newHex.SetY(gameGrid[col].IndexOf(newHex));
-			newHex.SetColor(colorList[(int)(Random.value * 10)%colorList.Count]);
-
-			startVector.x += HEX_DISTANCE_HORIZONTAL;
-			yield return new WaitForSeconds(0.03f);
-		}
-
-		/* Freeze grid after filling with new hexagons */
-		//FreezeGrid();
-	}
-	#endregion
-
-
 
 	#region SelectHelpers
 	/* Helper function for Select() to find all 3 hexagons to be outlined */
-	private List<Hexagon> FindHexagonGroup() {
+	private void FindHexagonGroup() {
 		List<Hexagon> returnValue = new List<Hexagon>();
 		Vector2 firstPos, secondPos;
 
 
 		/* Finding 2 other required hexagon coordinates on grid */
 		FindOtherHexagons(out firstPos, out secondPos);
-
-		/* Adding selected hexagons in pivot-first-second order to list */
-		if (selectedHexagon == null || gameGrid[(int)firstPos.x][(int)firstPos.y] == null || gameGrid[(int)secondPos.x][(int)secondPos.y] == null)
-			PrintGameGrid();
-
-		returnValue.Add(selectedHexagon);
-		returnValue.Add(gameGrid[(int)firstPos.x][(int)firstPos.y].GetComponent<Hexagon>());
-		returnValue.Add(gameGrid[(int)secondPos.x][(int)secondPos.y].GetComponent<Hexagon>());
-
-
-		return returnValue;
+		selectedGroup.Clear();
+		selectedGroup.Add(selectedHexagon);
+		selectedGroup.Add(gameGrid[(int)firstPos.x][(int)firstPos.y].GetComponent<Hexagon>());
+		selectedGroup.Add(gameGrid[(int)secondPos.x][(int)secondPos.y].GetComponent<Hexagon>());
 	}
 
-	
-	/* Helper function for FindHexagonGroup() to locate two other hexagons */
+
+	/* Helper function for FindHexagonGroup() to locate neighbours of selected hexagon */
 	private void FindOtherHexagons(out Vector2 first, out Vector2 second) {
 		Hexagon.NeighbourHexes neighbours = selectedHexagon.GetNeighbours();
 		bool breakLoop = false;
@@ -262,7 +140,8 @@ public class GridManager : SuperClass {
 			/* Loop until two neighbours with valid positions are found */
 			if (first.x < ZERO || first.x >= gridWidth || first.y < ZERO || first.y >= gridHeight || second.x < ZERO || second.x >= gridWidth || second.y < ZERO || second.y >= gridHeight) {
 				selectionStatus = (++selectionStatus) % SELECTION_STATUS_COUNT;
-			} else {
+			}
+			else {
 				breakLoop = true;
 			}
 		} while (!breakLoop);
@@ -275,9 +154,14 @@ public class GridManager : SuperClass {
 	/* Function to check if all hexagons finished rotating */
 	private IEnumerator RotationCheckCoroutine(bool clockWise) {
 		List<Hexagon> explosiveList = null;
+		bool flag = true;
 
+		hexagonRotationStatus = true;
+		DestructOutline();
 
-		for (int i=0; i<outlineList.Count; ++i) {
+		/* Rotate selected group until an explosive hexagon found or maximum rotation reached */
+		hexagonRotationStatus = true;
+		for (int i=0; i<selectedGroup.Count; ++i) {
 			/* Swap hexagons and wait until they are completed rotation */
 			SwapHexagons(clockWise);
 			yield return new WaitForSeconds(0.3f);
@@ -289,9 +173,29 @@ public class GridManager : SuperClass {
 		}
 
 
-		/* If there are explosive hexagons set status flag and indicate rotation is over */
-		startExplosion = explosiveList.Count > ZERO;
+		/* Chaining to prevent input interruption */
+		hexagonProductionStatus = true;
 		hexagonRotationStatus = false;
+
+
+		/* Explode the hexagons until no explosive hexagons are available */
+		/*while (explosiveList.Count > ZERO) {
+			if (flag) {
+				StartCoroutine(ProduceHexagons(GetMissingCells(CheckExplosion(gameGrid))));
+				flag = false;
+			}
+				
+			else if (InputAvailabile()) {
+				explosiveList = CheckExplosion(gameGrid);
+				flag = true;
+			}
+
+			yield return new WaitForSeconds(0.3f);
+		}*/
+		hexagonProductionStatus = false;
+
+		FindHexagonGroup();
+		ConstructOutline();
 	}
 
 
@@ -306,9 +210,9 @@ public class GridManager : SuperClass {
 
 
 		/* Taking each position to local variables to prevent data loss during rotation */
-		first = outlineList[0];
-		second = outlineList[1];
-		third = outlineList[2];
+		first = selectedGroup[0];
+		second = selectedGroup[1];
+		third = selectedGroup[2];
 
 		x1 = first.GetX();
 		x2 = second.GetX();
@@ -316,7 +220,7 @@ public class GridManager : SuperClass {
 
 		y1 = first.GetY();
 		y2 = second.GetY();
-		y3 = outlineList[2].GetY();
+		y3 = third.GetY();
 
 		pos1 = first.transform.position;
 		pos2 = second.transform.position;
@@ -349,6 +253,93 @@ public class GridManager : SuperClass {
 
 
 
+	#region ExplosionHelpers
+	/* Returns a list that contains hexagons which are ready to explode, returns an empty list if there is none */
+	private List<Hexagon> CheckExplosion(List<List<Hexagon>> listToCheck) {
+		List<Hexagon> neighbourList = new List<Hexagon>();
+		List<Hexagon> explosiveList = new List<Hexagon>();
+		Hexagon currentHexagon;
+		Hexagon.NeighbourHexes currentNeighbours;
+		Color currentColor;
+
+
+		for (int i = 0; i<listToCheck.Count; ++i) {
+			for (int j = 0; j<listToCheck[i].Count; ++j) {
+				/* Take current hexagon informations */
+				currentHexagon = listToCheck[i][j];
+				currentColor = currentHexagon.GetColor();
+				currentNeighbours = currentHexagon.GetNeighbours();
+
+				/* Fill neighbour list with up-upright-downright neighbours with valid positions */
+				if (IsValid(currentNeighbours.up)) neighbourList.Add(gameGrid[(int)currentNeighbours.up.x][(int)currentNeighbours.up.y]);
+				else neighbourList.Add(null);
+
+				if (IsValid(currentNeighbours.upRight)) neighbourList.Add(gameGrid[(int)currentNeighbours.upRight.x][(int)currentNeighbours.upRight.y]);
+				else neighbourList.Add(null);
+
+				if (IsValid(currentNeighbours.downRight)) neighbourList.Add(gameGrid[(int)currentNeighbours.downRight.x][(int)currentNeighbours.downRight.y]);
+				else neighbourList.Add(null);
+
+
+				/* If current 3 hexagons are all same color then add them to explosion list */
+				for (int k = 0; k<neighbourList.Count-1; ++k) {
+					if (neighbourList[k] != null && neighbourList[k+1] != null) {
+						if (neighbourList[k].GetColor() == currentColor && neighbourList[k+1].GetColor() == currentColor) {
+							if (!explosiveList.Contains(neighbourList[k]))
+								explosiveList.Add(neighbourList[k]);
+							if (!explosiveList.Contains(neighbourList[k+1]))
+								explosiveList.Add(neighbourList[k+1]);
+							if (!explosiveList.Contains(currentHexagon))
+								explosiveList.Add(currentHexagon);
+						}
+					}
+				}
+
+				neighbourList.Clear();
+			}
+		}
+
+
+		return explosiveList;
+	}
+
+
+
+	/* Function to clear explosive hexagons and tidy up the grid */
+	private List<int> GetMissingCells(List<Hexagon> list) {
+		List<int> missingColumns = new List<int>();
+		float positionX, positionY;
+
+
+		/* Remove hexagons from game grid */
+		foreach (Hexagon hex in list) {
+			gameGrid[hex.GetX()].Remove(hex);
+			missingColumns.Add(hex.GetX());
+			Destroy(hex.gameObject);
+		}
+
+		/* Re-assign left hexagon positions */
+		foreach (int i in missingColumns) {
+			for (int j=0; j<gameGrid[i].Count; ++j) {
+				positionX = GetGridStartCoordinateX() + (HEX_DISTANCE_HORIZONTAL * i);
+				positionY = (HEX_DISTANCE_VERTICAL * j * 2) + GRID_VERTICAL_OFFSET + (OnStepper(i) ? HEX_DISTANCE_VERTICAL : ZERO);
+				gameGrid[i][j].SetY(j);
+				gameGrid[i][j].ChangeWorldPosition(new Vector3(positionX, positionY, ZERO));
+			}
+		}
+
+		/* Increase score */
+		UserInterfaceManager.instance.Score(list.Count);
+		/* Construct new outline */
+		selectedHexagon = gameGrid[(int)selectedPosition.x][(int)selectedPosition.y];
+		FindHexagonGroup();
+		
+		return missingColumns;
+	}
+	#endregion
+
+
+
 	#region OutlineMethods
 	/* Function to clear the outline objects */
 	private void DestructOutline() {
@@ -366,7 +357,7 @@ public class GridManager : SuperClass {
 		 * hexagons and making them bigger than actual hexagons. AKA fake shader programming 
 		 * Yes, I should learn shader programming... 
 		 */
-		foreach (Hexagon outlinedHexagon in outlineList) {
+		foreach (Hexagon outlinedHexagon in selectedGroup) {
 			GameObject go = outlinedHexagon.gameObject;
 			GameObject outline = new GameObject("Outline");
 			GameObject outlineInner = new GameObject("Inner Object");
@@ -390,77 +381,51 @@ public class GridManager : SuperClass {
 	#endregion
 
 
+	
+	/* Produces new hexagons on given columns */
+	private IEnumerator ProduceHexagons(List<int> columns) {
+		Vector3 startPosition;
+		float positionX, positionY;
+		float startX = GetGridStartCoordinateX();
 
-	/* Function to initialize grid with a delay between each hexagon instantiation */
-	private IEnumerator InitialHexagonProducer (float startPos, Vector3 startVector) {
-		gameInitializiationStatus = true;
+
+		/* Indication for the beginning of hexagon production */
+		hexagonProductionStatus = true;
+
+		/* Produce new hexagon, set variables  */
+		foreach (int i in columns) {
+			/* Instantiate new hexagon and give a little delay */
+			positionX = startX + (HEX_DISTANCE_HORIZONTAL * i);
+			positionY = (HEX_DISTANCE_VERTICAL * gameGrid[i].Count * 2)  + GRID_VERTICAL_OFFSET + (OnStepper(i) ? HEX_DISTANCE_VERTICAL : ZERO);
+			startPosition = new Vector3(positionX, positionY, ZERO);
+
+			GameObject newObj = Instantiate(hexPrefab, HEX_START_POSITION, Quaternion.identity, hexParent.transform);
+			Hexagon newHex = newObj.GetComponent<Hexagon>();
+			yield return new WaitForSeconds(DELAY_TO_PRODUCE_HEXAGON);
 
 
-		/* Create desired number of Hexagons in given grid size */
-		for (int i = 0; i<gridHeight; ++i) {
-			startVector.x = startPos;
-			for (int j = 0; j<gridWidth; ++j) {
-				GameObject newObj = Instantiate(hexPrefab, startVector, Quaternion.identity, hexParent.transform);
-				Hexagon newHex = newObj.GetComponent<Hexagon>();
-				newHex.SetX(j);
-				newHex.SetY(i);
-				newHex.SetColor(colorList[(int)(Random.value * 10)%colorList.Count]);
-				//newHex.SetColor(new Color(Random.value, Random.value, Random.value));
-				gameGrid[j].Add(newHex);
-
-				startVector.x += HEX_DISTANCE_HORIZONTAL;
-				yield return new WaitForSeconds(0.01f);
-			}
+			/* Set world and grid positions of hexagon */
+			newHex.ChangeGridPosition(new Vector2(i, gameGrid[i].Count));
+			newHex.SetColor(colorList[(int)(Random.value * RANDOM_SEED)%colorList.Count]);
+			newHex.ChangeWorldPosition(startPosition);
+			gameGrid[i].Add(newHex);
 		}
 
-		
-
-		/* Freeze the grid for better visualasion and indicate the end of initializiation */
-		gameInitializiationStatus = false;
-		/*StartCoroutine(FreezeGrid());*/
+		/* Indication for the end of hexagon production */
+		hexagonProductionStatus = false;
 	}
 
 
 
-	/* Freezes all hexagons on game grid */
-	private IEnumerator FreezeGrid() {
-		bool status;
-
-		/* Make sure if all hexagons completed their fall state */
-		do {
-			status = true;
-			foreach (List<Hexagon> hexList in gameGrid)
-				foreach (Hexagon hex in hexList)
-					if (hex.IsMoving()) {
-						status = false;
-					}
-			yield return new WaitForSeconds(0.035f);
-		} while (!status);
-
-
-		foreach (List<Hexagon> hexList in gameGrid) {
-			foreach (Hexagon hex in hexList) {
-				hex.Freeze();
-			}
-		}
+	#region GeneralHelpers
+	public bool OnStepper(int x) {
+		int midIndex = GetGridWidth()/HALF;
+		return (midIndex%2 == x%2);
 	}
-
-
-
-	/* Unfreezes all the hexagons on game grid */
-	private void UnfreezeGrid() {
-		foreach (List<Hexagon> hexList in gameGrid) {
-			foreach (Hexagon hex in hexList) {
-				hex.SetFree();
-			}
-		}
-	}
-
-
 
 	/* Checks coroutine status variables to see if game is ready to take input */
 	public bool InputAvailabile() {
-		return !gameInitializiationStatus && !hexagonRotationStatus && !hexagonExplosionStatus;
+		return !hexagonProductionStatus;
 	}
 
 
@@ -496,7 +461,7 @@ public class GridManager : SuperClass {
 
 		print(map);
 	}
-
+	#endregion
 
 
 	/* Setters & Getters */
@@ -508,4 +473,5 @@ public class GridManager : SuperClass {
 	public int GetGridWidth() { return gridWidth; }
 	public int GetGridHeight() { return gridHeight; }
 	public bool GetColorblindMode() { return colorblindMode; }
+	public Hexagon GetSelectedHexagon() { return selectedHexagon; }
 }

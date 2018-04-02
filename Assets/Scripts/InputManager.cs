@@ -20,7 +20,8 @@ public class InputManager : SuperClass {
 			Vector3 wp = Camera.main.ScreenToWorldPoint(Input.GetTouch(ZERO).position);
 			Vector2 touchPos = new Vector2(wp.x, wp.y);
 			Collider2D collider = Physics2D.OverlapPoint(touchPos);
-
+			selectedHexagon = GridManagerObject.GetSelectedHexagon();
+			
 			/* Processing input */
 			TouchDetection();
 			CheckSelection(collider);
@@ -48,7 +49,7 @@ public class InputManager : SuperClass {
 			/* Select hexagon if touch ended */
 			if (Input.GetTouch(ZERO).phase == TouchPhase.Ended && validTouch) {
 				validTouch = false;
-				selectedHexagon = GridManagerObject.Select(collider);
+				GridManagerObject.Select(collider);
 			}
 		}
 	}
@@ -62,7 +63,7 @@ public class InputManager : SuperClass {
 			float distanceX = touchCurrentPosition.x - touchStartPosition.x;
 			float distanceY = touchCurrentPosition.y - touchStartPosition.y;
 
-
+			print("please rotate");
 			/* Check if rotation triggered by comparing distance between first touch position and current touch position */
 			if ((Mathf.Abs(distanceX) > HEX_ROTATE_SLIDE_DISTANCE || Mathf.Abs(distanceY) > HEX_ROTATE_SLIDE_DISTANCE) && selectedHexagon != null) {
 				Vector3 screenPosition = Camera.main.WorldToScreenPoint(selectedHexagon.transform.position);
@@ -80,6 +81,7 @@ public class InputManager : SuperClass {
 				bool clockWise = triggerOnX ? swipeRightUp == touchThanHex : swipeRightUp != touchThanHex;
 
 				validTouch = false;
+				print("rotate babe");
 				GridManagerObject.Rotate(clockWise);
 			}
 		}

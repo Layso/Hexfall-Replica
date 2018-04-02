@@ -7,8 +7,8 @@ public class Hexagon : SuperClass {
 	public int x;
 	public int y;
 	public Color color;
-	private Vector2 lerpPosition;
-	private bool lerp;
+	public Vector2 lerpPosition;
+	public bool lerp;
 	public Vector2 speed;
 
 
@@ -24,13 +24,6 @@ public class Hexagon : SuperClass {
 
 
 
-	/* Using awake since Start() will be too late for instantiation */
-	void Awake () {
-		/* Assigning invalid indexes to indicate unused hexagon */
-		x = -1;
-		y = -1;
-	}
-
 	void Start() {
 		GridManagerObject = GridManager.instance;
 		lerp = false;
@@ -42,18 +35,12 @@ public class Hexagon : SuperClass {
 			float newY = Mathf.Lerp(transform.position.y, lerpPosition.y, Time.deltaTime*HEXAGON_ROTATE_CONSTANT);
 			transform.position = new Vector2(newX, newY);
 
+			
 			if (Vector3.Distance(transform.position, lerpPosition) < HEXAGON_ROTATE_THRESHOLD) {
 				transform.position = lerpPosition;
 				lerp = false;
 			}
 		}
-
-		speed = GetComponent<Rigidbody2D>().velocity;
-	}
-
-	void FixedUpdate() {
-		/*if (GetComponent<Rigidbody2D>().velocity.magnitude > 10)
-			GetComponent<Rigidbody2D>().velocity = Vector2.down.*10;*/
 	}
 
 
@@ -69,14 +56,14 @@ public class Hexagon : SuperClass {
 
 	/* Sets rigidbody constraints to disable any movement */
 	public void Freeze() {
-		GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeAll;
+		/*GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeAll;*/
 	}
 
 	
 
 	/* Sets rigidbody constraints to enable vertical movement */
 	public void SetFree() {
-		GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
+		/*GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;*/
 	}
 
 
@@ -119,11 +106,27 @@ public class Hexagon : SuperClass {
 
 
 
+	/* Set new world position for hexagon */
+	public void ChangeWorldPosition(Vector2 newPosition) {
+		lerpPosition = newPosition;
+		lerp = true;
+	}
+
+
+
+	/* Set new grid position for hexagon */
+	public void ChangeGridPosition(Vector2 newPosition) {
+		x = (int)newPosition.x;
+		y = (int)newPosition.y;
+	}
+
+
+
 	/* Helper function to find out if Hexagon standing on stepper or on base.
 	 * midIndex is the index of middle column of the grid
 	 * If index of both middleColumn and current column has same parity then hexagon is on stepper
 	 */
-	private bool OnStepper() {
+	public bool OnStepper() {
 		int midIndex = GridManagerObject.GetGridWidth()/HALF;
 		return (midIndex%2 == GetX()%2);
 	}
@@ -138,5 +141,4 @@ public class Hexagon : SuperClass {
 	public int GetX() { return x; }
 	public int GetY() { return y; }
 	public Color GetColor() { return GetComponent<SpriteRenderer>().color; }
-	
 }
