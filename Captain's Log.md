@@ -42,3 +42,21 @@ Author: Layso
 -------------------
 - Whole day spent to implement hexagon explosion mechanic, just to find out at the end of day that there was an indexing problem
 - Exploded hexagon will be counted by UserInterfaceManager to show score
+
+
+
+02/04/2018 - Monday
+-------------------
+- To avoid sprite tweaking and bouncing 2D physics removed from game
+- All movement functionalities will be done by using LERP
+- Bomb hexagon implemented to appear on each 1000 score to end game if not exploded in 6 turns
+- Menu and UI design completed, not beautiful but serves the purpose
+- Thanks to changed physics, movement is more smooth and explosion mechanic works fine
+
+As today is the due day it will be end of development for a while, until I find time again to improve and finish the whole project.
+This was a hard challenge for me to achieve in 5 days thanks to some other problems. But I'll be continuing as I said above. It will
+be independent from Vertigo Games, just to satisfy myself. Here is a missing/TODO list:
+- Game is fixed to 5 colors, preparation screen doesn't affect it even with sliders
+- Game end check is missing, there is nothing that controls if there is still moves to play
+- UI could be more attractive
+- Code readability is a little messed on last day due to assignment stress
