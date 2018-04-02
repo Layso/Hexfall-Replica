@@ -1,8 +1,8 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-
+using UnityEngine.SceneManagement;
 
 
 public class UserInterfaceManager : SuperClass {
@@ -16,12 +16,14 @@ public class UserInterfaceManager : SuperClass {
 	public Dropdown colorblindDropdown;
 	public GameObject preparationScreen;
 	public GameObject colorSelectionParent;
+	public GameObject gameOverScreen;
 	public List<Color> availableColors;
 	public bool tick;
 
 	private GridManager GridManagerObject;
 	private int colorCount;
 	private int blownHexagons;
+	private int bombCount;
 
 	public static UserInterfaceManager instance;
 
@@ -35,10 +37,13 @@ public class UserInterfaceManager : SuperClass {
 	}
 
 	void Start () {
+		bombCount = ZERO;
 		GridManagerObject = GridManager.instance;
-		blownHexagons = 0;
+		blownHexagons = ZERO;
 		colorCount = 7;
 		InitializeUI();
+
+
 	}
 	
 	void Update () {
@@ -53,6 +58,18 @@ public class UserInterfaceManager : SuperClass {
 	public void Score(int x) {
 		blownHexagons += x;
 		score.text = (SCORE_CONSTANT * blownHexagons).ToString();
+		if (Int32.Parse(score.text) > BOMB_SCORE_THRESHOLD*bombCount + BOMB_SCORE_THRESHOLD) {
+			++bombCount;
+			GridManagerObject.SetBombProduction();
+		}
+	}
+
+	public void GameEnd() {
+		gameOverScreen.SetActive(true);
+	}
+
+	public void BackButton (string sceneName) {
+		SceneManager.LoadScene(sceneName);
 	}
 
 	public void WidthSliderChange() {
@@ -143,6 +160,10 @@ public class UserInterfaceManager : SuperClass {
 		widthValueText.text = ((widthSlider.value-MINIMUM_GRID_WIDTH)*DOUBLE + MINIMUM_GRID_WIDTH).ToString();
 		heightValueText.text = heightSlider.value.ToString();
 		score.text = blownHexagons.ToString();
+
+
+
+
 		// remove option file
 	}
 }

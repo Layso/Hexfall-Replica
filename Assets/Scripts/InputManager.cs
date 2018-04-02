@@ -62,8 +62,8 @@ public class InputManager : SuperClass {
 			Vector2 touchCurrentPosition = Input.GetTouch(ZERO).position;
 			float distanceX = touchCurrentPosition.x - touchStartPosition.x;
 			float distanceY = touchCurrentPosition.y - touchStartPosition.y;
+			
 
-			print("please rotate");
 			/* Check if rotation triggered by comparing distance between first touch position and current touch position */
 			if ((Mathf.Abs(distanceX) > HEX_ROTATE_SLIDE_DISTANCE || Mathf.Abs(distanceY) > HEX_ROTATE_SLIDE_DISTANCE) && selectedHexagon != null) {
 				Vector3 screenPosition = Camera.main.WorldToScreenPoint(selectedHexagon.transform.position);
@@ -81,7 +81,6 @@ public class InputManager : SuperClass {
 				bool clockWise = triggerOnX ? swipeRightUp == touchThanHex : swipeRightUp != touchThanHex;
 
 				validTouch = false;
-				print("rotate babe");
 				GridManagerObject.Rotate(clockWise);
 			}
 		}

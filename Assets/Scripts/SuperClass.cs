@@ -17,7 +17,8 @@ public class SuperClass : MonoBehaviour {
 	protected const int SCORE_CONSTANT = 5;
 	protected const int RANDOM_SEED = 75486;
 	protected const int GRID_VERTICAL_OFFSET = -3;
-
+	protected const int BOMB_TIMER_START = 6;
+	protected const int BOMB_SCORE_THRESHOLD = 1000;
 
 	protected const float HEX_DISTANCE_HORIZONTAL = 0.445f;
 	protected const float HEX_DISTANCE_VERTICAL = 0.23f;

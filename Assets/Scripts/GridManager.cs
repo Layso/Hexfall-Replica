@@ -20,10 +20,13 @@ public class GridManager : SuperClass {
 	private int gridHeight;
 	private int selectionStatus;
 	private bool colorblindMode;
+	private bool bombProduction;
+	private bool gameEnd;
 	private Vector2 selectedPosition;
 	private Hexagon selectedHexagon;
 	private List<List<Hexagon>> gameGrid;
 	private List<Hexagon> selectedGroup;
+	private List<Hexagon> bombs;
 	private List<Color> colorList;
 
 	/* Coroutine status variables */
@@ -43,9 +46,12 @@ public class GridManager : SuperClass {
 	}
 
 	void Start() {
+		gameEnd = false;
+		bombProduction = false;
 		hexagonRotationStatus = false;
 		hexagonExplosionStatus = false;
 		hexagonProductionStatus = false;
+		bombs = new List<Hexagon>();
 		selectedGroup = new List<Hexagon>();
 		gameGrid = new List<List<Hexagon>>();
 	}
@@ -208,17 +214,12 @@ public class GridManager : SuperClass {
 		Hexagon first, second, third;
 
 
-
+		
 		/* Taking each position to local variables to prevent data loss during rotation */
 		first = selectedGroup[0];
 		second = selectedGroup[1];
 		third = selectedGroup[2];
 
-		if (first == null || second == null || third == null) {
-			print("hay ananın amı");
-			print("öküz");
-			FindHexagonGroup();
-		}
 
 
 		x1 = first.GetX();
@@ -318,8 +319,24 @@ public class GridManager : SuperClass {
 		float positionX, positionY;
 
 
+		/* Check for bombs */
+		foreach (Hexagon hex in bombs) {
+			if (!list.Contains(hex)) {
+				hex.Tick();
+				if (hex.GetTimer() == ZERO) {
+					gameEnd = true;
+					UserInterfaceManager.instance.GameEnd();
+					StopAllCoroutines();
+					return missingColumns;
+				}
+			}
+		}
+
 		/* Remove hexagons from game grid */
 		foreach (Hexagon hex in list) {
+			if (bombs.Contains(hex)) {
+				bombs.Remove(hex);
+			}
 			UserInterfaceManager.instance.Score(1);
 			gameGrid[hex.GetX()].Remove(hex);
 			missingColumns.Add(hex.GetX());
@@ -332,6 +349,7 @@ public class GridManager : SuperClass {
 				positionX = GetGridStartCoordinateX() + (HEX_DISTANCE_HORIZONTAL * i);
 				positionY = (HEX_DISTANCE_VERTICAL * j * 2) + GRID_VERTICAL_OFFSET + (OnStepper(i) ? HEX_DISTANCE_VERTICAL : ZERO);
 				gameGrid[i][j].SetY(j);
+				gameGrid[i][j].SetX(i);
 				gameGrid[i][j].ChangeWorldPosition(new Vector3(positionX, positionY, ZERO));
 			}
 		}
@@ -413,13 +431,19 @@ public class GridManager : SuperClass {
 			yield return new WaitForSeconds(DELAY_TO_PRODUCE_HEXAGON);
 
 
+			/* Set bomb if production signal has arrived */
+			if (bombProduction) {
+				newHex.SetBomb();
+				bombs.Add(newHex);
+				bombProduction = false;
+			}
+
 			/* Set world and grid positions of hexagon */
 			if (colorSeed == null)
 				newHex.SetColor(colorList[(int)(Random.value * RANDOM_SEED)%colorList.Count]);
 			else 
 				newHex.SetColor(colorSeed[i][gameGrid[i].Count]);
 
-			newHex.SetOnStepper(stepperStatus);
 			newHex.ChangeGridPosition(new Vector2(i, gameGrid[i].Count));
 			newHex.ChangeWorldPosition(startPosition);
 			gameGrid[i].Add(newHex);
@@ -472,7 +496,7 @@ public class GridManager : SuperClass {
 
 	/* Checks coroutine status variables to see if game is ready to take input */
 	public bool InputAvailabile() {
-		return !hexagonProductionStatus;
+		return !hexagonProductionStatus && !gameEnd;
 	}
 
 
@@ -516,6 +540,7 @@ public class GridManager : SuperClass {
 	public void SetGridHeight(int height) { gridHeight = height; }
 	public void SetColorblindMode(bool mode) { colorblindMode = mode; }
 	public void SetColorList(List<Color> list) { colorList = list; }
+	public void SetBombProduction() { bombProduction = true; }
 
 	public int GetGridWidth() { return gridWidth; }
 	public int GetGridHeight() { return gridHeight; }

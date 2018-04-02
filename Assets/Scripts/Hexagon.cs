@@ -10,7 +10,9 @@ public class Hexagon : SuperClass {
 	public Vector2 lerpPosition;
 	public bool lerp;
 	public Vector2 speed;
-	private bool onStepper;
+	private bool bomb;
+	private int bombTimer;
+	private TextMesh text;
 
 
 	/* Struct to hold neighboor grid coordinates */
@@ -55,20 +57,6 @@ public class Hexagon : SuperClass {
 
 
 
-	/* Sets rigidbody constraints to disable any movement */
-	public void Freeze() {
-		/*GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezeAll;*/
-	}
-
-	
-
-	/* Sets rigidbody constraints to enable vertical movement */
-	public void SetFree() {
-		/*GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;*/
-	}
-
-
-
 	/* Returns the LERP status to indicate the end of rotation */
 	public bool IsRotating() {
 		return lerp;
@@ -91,7 +79,7 @@ public class Hexagon : SuperClass {
 	/* Builds a struct from grid position of neighbour hexagons and returns it */
 	public NeighbourHexes GetNeighbours() {
 		NeighbourHexes neighbours;
-		bool onStepper = OnStepper();
+		bool onStepper = GridManagerObject.OnStepper(GetX());
 
 
 		neighbours.down = new Vector2(x, y-1);
@@ -121,16 +109,27 @@ public class Hexagon : SuperClass {
 		y = (int)newPosition.y;
 	}
 
+	public void SetBomb() {
+		text = new GameObject().AddComponent<TextMesh>();
+		text.alignment = TextAlignment.Center;
+		text.anchor = TextAnchor.MiddleCenter;
+		text.transform.localScale = transform.localScale;
+		text.transform.position = new Vector3(transform.position.x, transform.position.y, -4);
+		text.color = Color.black;
+		text.transform.parent = transform;
+		bombTimer = BOMB_TIMER_START;
+		text.text = bombTimer.ToString();
+	}
 
 
 	/* Setters & Getters */
 	public void SetX(int value) { x = value; }
 	public void SetY(int value) { y = value; }
 	public void SetColor(Color newColor) { GetComponent<SpriteRenderer>().color = newColor; color=newColor; }
-	public void SetOnStepper(bool flag) { onStepper = flag; }
+	public void Tick() { --bombTimer; text.text = bombTimer.ToString(); }
 
 	public int GetX() { return x; }
 	public int GetY() { return y; }
 	public Color GetColor() { return GetComponent<SpriteRenderer>().color; }
-	public bool OnStepper() { return onStepper; }
+	public int GetTimer () { return bombTimer; }
 }
