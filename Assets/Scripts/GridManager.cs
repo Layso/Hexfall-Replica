@@ -50,8 +50,6 @@ public class GridManager : SuperClass {
 		gameGrid = new List<List<Hexagon>>();
 	}
 
-	void Update() {
-	}
 
 
 	/* Wrapper function for grid initializer coroutine. Width and height should be set before this call */
@@ -79,7 +77,7 @@ public class GridManager : SuperClass {
 		if (selectedHexagon == null || !selectedHexagon.GetComponent<Collider2D>().Equals(collider)) {
 			selectedHexagon = collider.gameObject.GetComponent<Hexagon>();
 			selectedPosition.x = selectedHexagon.GetX();
-			selectedPosition.y = selectedHexagon.GetX();
+			selectedPosition.y = selectedHexagon.GetY();
 			selectionStatus = 0;
 		}
 
@@ -88,7 +86,7 @@ public class GridManager : SuperClass {
 			selectionStatus = (++selectionStatus) % SELECTION_STATUS_COUNT;
 		}
 
-		FindHexagonGroup();
+		DestructOutline();
 		ConstructOutline();
 	}
 
@@ -97,9 +95,9 @@ public class GridManager : SuperClass {
 	/* Function to rotate the hex group on touch position */
 	public void Rotate(bool clockWise) {
 		/* Specifying that rotation started and destroying outliner*/
+		DestructOutline();
 		StartCoroutine(RotationCheckCoroutine(clockWise));
 	}
-
 
 
 
@@ -109,8 +107,8 @@ public class GridManager : SuperClass {
 		List<Hexagon> returnValue = new List<Hexagon>();
 		Vector2 firstPos, secondPos;
 
-
 		/* Finding 2 other required hexagon coordinates on grid */
+		selectedHexagon = gameGrid[(int)selectedPosition.x][(int)selectedPosition.y];
 		FindOtherHexagons(out firstPos, out secondPos);
 		selectedGroup.Clear();
 		selectedGroup.Add(selectedHexagon);
@@ -153,12 +151,10 @@ public class GridManager : SuperClass {
 	#region RotateHelpers
 	/* Function to check if all hexagons finished rotating */
 	private IEnumerator RotationCheckCoroutine(bool clockWise) {
-		List<Hexagon> explosiveList = null;
+		List<Hexagon> explosiveHexagons = null;
 		bool flag = true;
 
-		hexagonRotationStatus = true;
-		DestructOutline();
-
+		
 		/* Rotate selected group until an explosive hexagon found or maximum rotation reached */
 		hexagonRotationStatus = true;
 		for (int i=0; i<selectedGroup.Count; ++i) {
@@ -167,33 +163,35 @@ public class GridManager : SuperClass {
 			yield return new WaitForSeconds(0.3f);
 
 			/* Check if there is any explosion available, break loop if it is */
-			explosiveList = CheckExplosion(gameGrid);
-			if (explosiveList.Count > ZERO)
+			explosiveHexagons = CheckExplosion(gameGrid);
+			if (explosiveHexagons.Count > ZERO) {
 				break;
+			}
 		}
 
 
-		/* Chaining to prevent input interruption */
-		hexagonProductionStatus = true;
+		/* Indicate that rotation has ended and explosion starts */
+		hexagonExplosionStatus = true;
 		hexagonRotationStatus = false;
 
 
 		/* Explode the hexagons until no explosive hexagons are available */
-		/*while (explosiveList.Count > ZERO) {
+		while (explosiveHexagons.Count > ZERO) {
 			if (flag) {
-				StartCoroutine(ProduceHexagons(GetMissingCells(CheckExplosion(gameGrid))));
+				hexagonProductionStatus = true;
+				StartCoroutine(ProduceHexagons(ExplodeHexagons(explosiveHexagons, true)));
 				flag = false;
 			}
 				
-			else if (InputAvailabile()) {
-				explosiveList = CheckExplosion(gameGrid);
+			else if (!hexagonProductionStatus) {
+				explosiveHexagons = CheckExplosion(gameGrid);
 				flag = true;
 			}
 
 			yield return new WaitForSeconds(0.3f);
-		}*/
-		hexagonProductionStatus = false;
+		}
 
+		hexagonExplosionStatus = false;
 		FindHexagonGroup();
 		ConstructOutline();
 	}
@@ -209,10 +207,18 @@ public class GridManager : SuperClass {
 		Hexagon first, second, third;
 
 
+
 		/* Taking each position to local variables to prevent data loss during rotation */
 		first = selectedGroup[0];
 		second = selectedGroup[1];
 		third = selectedGroup[2];
+
+		if (first == null || second == null || third == null) {
+			print("hay ananın amı");
+			print("öküz");
+			FindHexagonGroup();
+		}
+
 
 		x1 = first.GetX();
 		x2 = second.GetX();
@@ -306,7 +312,7 @@ public class GridManager : SuperClass {
 
 
 	/* Function to clear explosive hexagons and tidy up the grid */
-	private List<int> GetMissingCells(List<Hexagon> list) {
+	private List<int> ExplodeHexagons(List<Hexagon> list, bool countScore) {
 		List<int> missingColumns = new List<int>();
 		float positionX, positionY;
 
@@ -328,12 +334,8 @@ public class GridManager : SuperClass {
 			}
 		}
 
-		/* Increase score */
-		UserInterfaceManager.instance.Score(list.Count);
-		/* Construct new outline */
-		selectedHexagon = gameGrid[(int)selectedPosition.x][(int)selectedPosition.y];
-		FindHexagonGroup();
-		
+		/* Indicate the end of process and return the missing column list */
+		hexagonExplosionStatus = false;
 		return missingColumns;
 	}
 	#endregion
@@ -353,6 +355,9 @@ public class GridManager : SuperClass {
 
 	/* Function to build outline */
 	private void ConstructOutline() {
+		/* Get selected hexagon group */
+		FindHexagonGroup();
+
 		/* Creating outlines by creating black hexagons on same position with selected 
 		 * hexagons and making them bigger than actual hexagons. AKA fake shader programming 
 		 * Yes, I should learn shader programming... 
