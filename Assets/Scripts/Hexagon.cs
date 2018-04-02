@@ -10,6 +10,7 @@ public class Hexagon : SuperClass {
 	public Vector2 lerpPosition;
 	public bool lerp;
 	public Vector2 speed;
+	private bool onStepper;
 
 
 	/* Struct to hold neighboor grid coordinates */
@@ -122,23 +123,14 @@ public class Hexagon : SuperClass {
 
 
 
-	/* Helper function to find out if Hexagon standing on stepper or on base.
-	 * midIndex is the index of middle column of the grid
-	 * If index of both middleColumn and current column has same parity then hexagon is on stepper
-	 */
-	public bool OnStepper() {
-		int midIndex = GridManagerObject.GetGridWidth()/HALF;
-		return (midIndex%2 == GetX()%2);
-	}
-
-
-
 	/* Setters & Getters */
 	public void SetX(int value) { x = value; }
 	public void SetY(int value) { y = value; }
 	public void SetColor(Color newColor) { GetComponent<SpriteRenderer>().color = newColor; color=newColor; }
+	public void SetOnStepper(bool flag) { onStepper = flag; }
 
 	public int GetX() { return x; }
 	public int GetY() { return y; }
 	public Color GetColor() { return GetComponent<SpriteRenderer>().color; }
+	public bool OnStepper() { return onStepper; }
 }

@@ -20,7 +20,6 @@ public class UserInterfaceManager : SuperClass {
 	public bool tick;
 
 	private GridManager GridManagerObject;
-	private bool fromStart;
 	private int colorCount;
 	private int blownHexagons;
 
@@ -38,12 +37,10 @@ public class UserInterfaceManager : SuperClass {
 	void Start () {
 		GridManagerObject = GridManager.instance;
 		blownHexagons = 0;
-
-		fromStart = true;
+		colorCount = 7;
 		InitializeUI();
 	}
 	
-	// Update is called once per frame
 	void Update () {
 		if (tick) {
 			StartGameButton();
@@ -51,13 +48,15 @@ public class UserInterfaceManager : SuperClass {
 		}
 	}
 
+
+
 	public void Score(int x) {
 		blownHexagons += x;
 		score.text = (SCORE_CONSTANT * blownHexagons).ToString();
 	}
 
 	public void WidthSliderChange() {
-		/* This will allow only odd numbers to protect symmetric visual */
+		/* This will allow only odd numbers to protect symmetrical visual */
 		widthValueText.text = ((widthSlider.value-MINIMUM_GRID_WIDTH)*DOUBLE + MINIMUM_GRID_WIDTH).ToString(); 
 	}
 
@@ -66,7 +65,6 @@ public class UserInterfaceManager : SuperClass {
 	}
 
 	public void ColorCountSliderChange() {
-		int index;
 		int childCount = colorSelectionParent.transform.childCount;
 		int newCount = (int)colorCountSlider.value;
 		colorCountText.text = newCount.ToString();

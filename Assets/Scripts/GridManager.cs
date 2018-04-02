@@ -66,7 +66,8 @@ public class GridManager : SuperClass {
 		}
 
 		/* Fill grid with hexagons */
-		StartCoroutine(ProduceHexagons(missingCells));
+
+		StartCoroutine(ProduceHexagons(missingCells, ColoredGridProducer()));
 	}
 
 
@@ -179,7 +180,7 @@ public class GridManager : SuperClass {
 		while (explosiveHexagons.Count > ZERO) {
 			if (flag) {
 				hexagonProductionStatus = true;
-				StartCoroutine(ProduceHexagons(ExplodeHexagons(explosiveHexagons, true)));
+				StartCoroutine(ProduceHexagons(ExplodeHexagons(explosiveHexagons)));
 				flag = false;
 			}
 				
@@ -312,13 +313,14 @@ public class GridManager : SuperClass {
 
 
 	/* Function to clear explosive hexagons and tidy up the grid */
-	private List<int> ExplodeHexagons(List<Hexagon> list, bool countScore) {
+	private List<int> ExplodeHexagons(List<Hexagon> list) {
 		List<int> missingColumns = new List<int>();
 		float positionX, positionY;
 
 
 		/* Remove hexagons from game grid */
 		foreach (Hexagon hex in list) {
+			UserInterfaceManager.instance.Score(1);
 			gameGrid[hex.GetX()].Remove(hex);
 			missingColumns.Add(hex.GetX());
 			Destroy(hex.gameObject);
@@ -388,10 +390,11 @@ public class GridManager : SuperClass {
 
 	
 	/* Produces new hexagons on given columns */
-	private IEnumerator ProduceHexagons(List<int> columns) {
+	private IEnumerator ProduceHexagons(List<int> columns, List<List<Color>> colorSeed = null) {
 		Vector3 startPosition;
 		float positionX, positionY;
 		float startX = GetGridStartCoordinateX();
+		bool stepperStatus;
 
 
 		/* Indication for the beginning of hexagon production */
@@ -400,8 +403,9 @@ public class GridManager : SuperClass {
 		/* Produce new hexagon, set variables  */
 		foreach (int i in columns) {
 			/* Instantiate new hexagon and give a little delay */
+			stepperStatus = OnStepper(i);
 			positionX = startX + (HEX_DISTANCE_HORIZONTAL * i);
-			positionY = (HEX_DISTANCE_VERTICAL * gameGrid[i].Count * 2)  + GRID_VERTICAL_OFFSET + (OnStepper(i) ? HEX_DISTANCE_VERTICAL : ZERO);
+			positionY = (HEX_DISTANCE_VERTICAL * gameGrid[i].Count * 2)  + GRID_VERTICAL_OFFSET + (stepperStatus ? HEX_DISTANCE_VERTICAL : ZERO);
 			startPosition = new Vector3(positionX, positionY, ZERO);
 
 			GameObject newObj = Instantiate(hexPrefab, HEX_START_POSITION, Quaternion.identity, hexParent.transform);
@@ -410,8 +414,13 @@ public class GridManager : SuperClass {
 
 
 			/* Set world and grid positions of hexagon */
+			if (colorSeed == null)
+				newHex.SetColor(colorList[(int)(Random.value * RANDOM_SEED)%colorList.Count]);
+			else 
+				newHex.SetColor(colorSeed[i][gameGrid[i].Count]);
+
+			newHex.SetOnStepper(stepperStatus);
 			newHex.ChangeGridPosition(new Vector2(i, gameGrid[i].Count));
-			newHex.SetColor(colorList[(int)(Random.value * RANDOM_SEED)%colorList.Count]);
 			newHex.ChangeWorldPosition(startPosition);
 			gameGrid[i].Add(newHex);
 		}
@@ -422,7 +431,40 @@ public class GridManager : SuperClass {
 
 
 
+	/* Function to produce a grid with valid colors */
+	private List<List<Color>> ColoredGridProducer() {
+		List<List<Color>> returnValue = new List<List<Color>>();
+		List<Color> checkList = new List<Color>();
+		bool exit = true;
+
+
+		/* Creating a color list without ready to explode neighbours */
+		for (int i = 0; i<GetGridWidth(); ++i) {
+			returnValue.Add(new List<Color>());
+			for (int j = 0; j<GetGridHeight(); ++j) {
+				returnValue[i].Add(colorList[(int)(Random.value * RANDOM_SEED)%colorList.Count]);
+				do {
+					exit = true;
+					returnValue[i][j] = colorList[(int)(Random.value * RANDOM_SEED)%colorList.Count];
+					if (i-1 >= ZERO && j-1 >= ZERO) {
+						if (returnValue[i][j-1] == returnValue[i][j] || returnValue[i-1][j] == returnValue[i][j])
+							exit = false;
+					}
+				} while (!exit);
+			}
+		}
+
+
+		return returnValue;
+	}
+
+
+
 	#region GeneralHelpers
+	/* Helper function to find out if Hexagon standing on stepper or on base.
+	 * midIndex is the index of middle column of the grid
+	 * If index of both middleColumn and current column has same parity then hexagon is on stepper
+	 */
 	public bool OnStepper(int x) {
 		int midIndex = GetGridWidth()/HALF;
 		return (midIndex%2 == x%2);
